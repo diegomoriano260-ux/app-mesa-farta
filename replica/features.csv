@@ -1,0 +1,23 @@
+feature,area,priority,original,clone,notes
+Login do dono,conta,must,yes,no,
+Conectar Instagram profissional via Instagram Login,canais,must,yes,no,instagram_business_basic + manage_messages + manage_comments
+Conectar WhatsApp Cloud API,canais,must,yes,no,token de system user; número dedicado
+Renovar token do Instagram antes de 60 dias,canais,must,yes,no,
+Gatilho: comentário com palavra-chave em post/reel,automacao,must,yes,no,webhook comments
+Gatilho: comentário em qualquer post,automacao,should,yes,no,
+Resposta pública ao comentário,automacao,should,yes,no,
+Private reply (DM) ao comentário,automacao,must,yes,no,1 por comentário; até 7 dias
+Gatilho: palavra-chave na DM do Instagram,automacao,must,yes,no,janela 24h
+Gatilho: palavra-chave no WhatsApp,automacao,must,yes,no,janela 24h
+Mensagem com botões de link,mensagens,must,yes,no,
+Mensagem com imagem,mensagens,should,yes,no,
+Templates WhatsApp aprovados,mensagens,should,yes,no,para falar fora da janela de 24h
+Lista de contatos,contatos,must,yes,no,
+Tags automáticas por automação,contatos,should,yes,no,
+Inbox ao vivo e pausar robô,inbox,should,yes,no,
+Painel com métricas (disparos; cliques),painel,could,yes,no,
+Editor visual de fluxos com condições,automacao,could,yes,no,fase 2
+Sequências / atrasos,automacao,could,yes,no,fase 2
+Messenger,canais,could,yes,no,fora do escopo inicial
+Templates prontos do ManyChat,conteudo,skip,yes,no,propriedade do ManyChat
+Marca e textos do ManyChat,marca,skip,yes,no,propriedade do ManyChat
