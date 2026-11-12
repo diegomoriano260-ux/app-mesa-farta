@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { encrypt } from "@/lib/crypto";
 import { requireSession } from "@/lib/session";
 import * as wa from "@/lib/meta/whatsapp";
+import * as ig from "@/lib/meta/instagram";
 
 export async function connectWhatsapp(_: { error?: string; ok?: string } | undefined, form: FormData) {
   await requireSession();
@@ -40,4 +41,38 @@ export async function disconnect(form: FormData) {
   await requireSession();
   await db()`update channels set status = 'disconnected' where id = ${String(form.get("id"))}`;
   revalidatePath("/canais");
+}
+
+// Conecta o Instagram colando o token gerado no painel da Meta
+// ("Gerar tokens de acesso"). Tokens do login do Instagram começam com "IG".
+export async function connectInstagramToken(_: { error?: string; ok?: string } | undefined, form: FormData) {
+  await requireSession();
+  const token = String(form.get("token") ?? "").trim().replace(/\s+/g, "");
+  if (!token) return { error: "Cole o token gerado no painel da Meta." };
+  if (token.startsWith("EAA")) {
+    return { error: "Esse token é do tipo Facebook (começa com EAA). Me mande um print da tela onde você gerou, que eu adapto o app." };
+  }
+  let me;
+  try {
+    me = await ig.getMe(token);
+  } catch (e) {
+    return { error: `A Meta recusou o token: ${e instanceof Error ? e.message.slice(0, 200) : e}` };
+  }
+  let warn = "";
+  try {
+    await ig.subscribeWebhooks(token);
+  } catch (e) {
+    warn = ` (aviso: não consegui ativar os avisos automáticos: ${e instanceof Error ? e.message.slice(0, 120) : e})`;
+  }
+  // Token do painel dura ~60 dias; o cron renova quando faltar menos de 10.
+  const expiresAt = new Date(Date.now() + 55 * 24 * 3600 * 1000);
+  await db()`
+    insert into channels (kind, external_id, display_name, access_token_enc, token_expires_at, status, last_error)
+    values ('instagram', ${String(me.user_id)}, ${"@" + me.username}, ${encrypt(token)}, ${expiresAt}, 'connected', null)
+    on conflict (kind, external_id) do update set
+      display_name = excluded.display_name, access_token_enc = excluded.access_token_enc,
+      token_expires_at = excluded.token_expires_at, status = 'connected', last_error = null`;
+  revalidatePath("/canais");
+  revalidatePath("/");
+  return { ok: `Instagram @${me.username} conectado!${warn}` };
 }

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { disconnect } from "./actions";
 import { WhatsappForm } from "./whatsapp-form";
+import { InstagramTokenForm } from "./instagram-token-form";
 import { Notice, PageHeader } from "@/components/ui";
 import { ConfirmButton } from "@/components/confirm-button";
 import { IconCheck, IconInstagram, IconWhatsapp } from "@/components/icons";
@@ -61,10 +62,13 @@ export default async function Canais({ searchParams }: { searchParams: Promise<{
           </div>
           <div className="space-y-4 p-5">
             <ul className="space-y-2 text-sm text-muted">
-              <li className="flex gap-2"><IconCheck className="h-5 w-5 shrink-0 text-green-600" />A conta precisa ser profissional (Criador ou Empresa).</li>
-              <li className="flex gap-2"><IconCheck className="h-5 w-5 shrink-0 text-green-600" />A Aline entra com o Instagram dela. Ninguém vê a senha.</li>
+              <li className="flex gap-2"><IconCheck className="h-5 w-5 shrink-0 text-green-600" />A conta precisa ser profissional e estar como testadora no app da Meta.</li>
+              <li className="flex gap-2"><IconCheck className="h-5 w-5 shrink-0 text-green-600" />Gere o token no painel da Meta e cole abaixo. Ninguém precisa da senha da Aline.</li>
             </ul>
-            <a href="/api/auth/instagram/start" className="btn-primary w-full py-3 sm:w-auto">Conectar Instagram</a>
+            <InstagramTokenForm />
+            {process.env.IG_APP_ID && (
+              <a href="/api/auth/instagram/start" className="btn-secondary w-full sm:w-auto">Ou entrar com o Instagram</a>
+            )}
           </div>
         </section>
       )}
