@@ -1,4 +1,4 @@
-# Arquitetura: Mesa Farta Automação (reconstrução das funções centrais do ManyChat)
+# Arquitetura: Ativa Aline (reconstrução das funções centrais do ManyChat)
 
 Lê: `replica/recon.md`, `replica/features.csv`. SQL: `replica/schema.sql`.
 

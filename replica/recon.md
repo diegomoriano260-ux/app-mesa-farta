@@ -1,7 +1,7 @@
 # Mapa de reconhecimento: ManyChat (web)
 
 Escopo: automação por palavra-chave e comentário → DM, no Instagram Direct e no WhatsApp Business
-Para: uso próprio (o negócio do Diego), não SaaS
+Para: o Instagram da Aline Moriano (uso próprio, não SaaS). Nome do app: Ativa Aline
 Data: 2026-11-12
 
 > Clean-room: estudamos o que o ManyChat **faz** e como o usuário navega.

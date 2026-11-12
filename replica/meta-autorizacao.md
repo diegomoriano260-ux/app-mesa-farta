@@ -1,7 +1,9 @@
 # Autorização da Meta: passo a passo (uso próprio)
 
-**Boa notícia:** como o app é só para o **seu próprio negócio**, você **não
-precisa de App Review** nem de "Advanced Access". A Meta diz isso na
+Conta: **Instagram da Aline Moriano**. App: **Ativa Aline**.
+
+**Boa notícia:** como o app é só para a conta da Aline (uma conta que vocês
+possuem ou gerenciam), **não precisa de App Review** nem de "Advanced Access". A Meta diz isso na
 documentação oficial:
 
 - Instagram: se o app atende só contas profissionais que você possui ou
@@ -19,7 +21,7 @@ conta Meta. Confira sempre o painel do app, porque a Meta muda os nomes.
 
 ## 0. Pré-requisitos
 
-- [ ] Conta **profissional** (Business ou Criador) no Instagram.
+- [ ] O Instagram da Aline como conta **profissional** (Empresa ou Criador de conteúdo).
 - [ ] Um **Portfólio empresarial** (antigo Gerenciador de Negócios) em business.facebook.com.
 - [ ] Um **número de telefone** para o WhatsApp que **não** esteja em uso no app
       WhatsApp/WhatsApp Business (ou que você aceite migrar para a API).
@@ -36,8 +38,10 @@ conta Meta. Confira sempre o painel do app, porque a Meta muda os nomes.
 ## 2. Instagram (API com Login do Instagram)
 
 1. No app → caso de uso Instagram → **Configuração da API com login do Instagram**.
-2. Adicione a sua conta do Instagram como **testador do Instagram** (Funções do app)
-   e aceite o convite no Instagram: Configurações → Apps e sites → Convites de testador.
+2. Adicione o Instagram **da Aline** como **testador do Instagram** (Funções do app).
+   A **própria Aline** aceita o convite no Instagram dela: Configurações → Apps e
+   sites → Convites de testador. Ela faz o login dela no "Conectar Instagram";
+   ninguém precisa da senha dela.
 3. Permissões a ativar:
    - `instagram_business_basic`
    - `instagram_business_manage_messages` (receber/enviar DMs)
@@ -82,7 +86,7 @@ WA_BUSINESS_ACCOUNT_ID=
 
 ## 5. Teste de fumaça
 
-- [ ] Comentar a palavra-chave num post seu (com **outra** conta) → chega a DM.
+- [ ] Comentar a palavra-chave num post da Aline (com **outra** conta) → chega a DM.
 - [ ] Mandar a palavra-chave na DM → chega a resposta.
 - [ ] Mandar a palavra-chave no WhatsApp → chega a resposta.
 
