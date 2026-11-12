@@ -1,6 +1,6 @@
 # Arquitetura: Ativa Aline (reconstrução das funções centrais do ManyChat)
 
-Lê: `replica/recon.md`, `replica/features.csv`. SQL: `replica/schema.sql`.
+Lê: `replica/recon.md`, `replica/features.csv`. SQL: `ativa-aline/db/001_init.sql`.
 
 ## Stack
 
@@ -8,9 +8,9 @@ Lê: `replica/recon.md`, `replica/features.csv`. SQL: `replica/schema.sql`.
 | --- | --- | --- |
 | web | Next.js (App Router) + TypeScript | painel + rotas de API/webhook no mesmo projeto |
 | estilo | Tailwind | tokens do `/replica-design` |
-| banco | Postgres no Supabase | gerenciado, grátis para começar, RLS pronto |
-| acesso ao banco | supabase-js (painel) + SQL com service role (webhooks) | simples; sem ORM no início |
-| login | Supabase Auth (e-mail + senha / link mágico) | um só dono |
+| banco | Postgres no Supabase (ou Neon) | gerenciado, grátis para começar |
+| acesso ao banco | `postgres` (SQL direto, só no servidor) | simples; sem ORM; roda em qualquer Postgres |
+| login | senha de administrador (`ADMIN_PASSWORD`) + cookie assinado | um só painel, para a Aline |
 | APIs externas | Graph API do Instagram e WhatsApp Cloud API, via `fetch` | oficiais, com as suas chaves |
 | jobs | Vercel Cron | renovar token IG 1x/dia |
 | hospedagem | Vercel | HTTPS público: obrigatório para webhooks da Meta |
@@ -21,10 +21,10 @@ Um banco, um app. Nada de microsserviços.
 ## Schema
 
 Tabelas: 6 (`channels`, `automations`, `automation_messages`, `contacts`,
-`inbound_events`, `dispatches`) + 1 view (`channels_public`).
-Acesso: **RLS do Supabase** para o painel; webhooks e cron usam a service role
-só no servidor. Tokens da Meta ficam **criptografados** (AES-GCM, chave em
-`TOKEN_ENCRYPTION_KEY`) e nunca vão ao navegador.
+`inbound_events`, `dispatches`).
+Acesso: **só o servidor** fala com o banco (`DATABASE_URL`). RLS ligado sem
+políticas, então as chaves públicas do Supabase não leem nada. Tokens da Meta
+ficam **criptografados** (AES-256-GCM, chave em `TOKEN_ENCRYPTION_KEY`).
 
 ## API
 
@@ -41,6 +41,8 @@ só no servidor. Tokens da Meta ficam **criptografados** (AES-GCM, chave em
 | ação server: pausar robô no contato | humano assume | dono | contact_id | ok | F05 |
 | ação server: responder no inbox | envio manual (dentro de 24h) | dono | contact_id, texto | ok | F05 |
 | GET /api/cron/refresh-ig-tokens | renova tokens IG que expiram em <10 dias | Vercel Cron (CRON_SECRET) | — | resumo | — |
+
+Código: `ativa-aline/` (Next.js). Login do painel por senha (`ADMIN_PASSWORD`), sem Supabase Auth.
 
 Webhooks de entrada: Instagram (`comments`, `messages`), WhatsApp (`messages`).
 Webhooks de saída: nenhum.
