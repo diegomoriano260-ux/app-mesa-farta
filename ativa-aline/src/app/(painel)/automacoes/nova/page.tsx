@@ -5,8 +5,8 @@ export default async function NovaAutomacao() {
   const channels = await loadChannels();
   const posts = await loadPosts(channels);
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Nova automação</h1>
+    <div className="pb-20 md:pb-0">
+      <h1 className="mb-6 text-[26px] font-bold tracking-tight">Nova automação</h1>
       <AutomationForm
         channels={channels}
         posts={posts}

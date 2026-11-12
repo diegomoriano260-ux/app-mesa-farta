@@ -11,7 +11,7 @@ export function LoginForm() {
         <input id="password" name="password" type="password" required autoFocus className="input" />
       </div>
       {state?.error && <p className="text-sm text-red-700">{state.error}</p>}
-      <button className="btn-primary w-full" disabled={pending}>{pending ? "Entrando..." : "Entrar"}</button>
+      <button className="btn-primary w-full py-3 text-base" disabled={pending}>{pending ? "Entrando..." : "Entrar"}</button>
     </form>
   );
 }

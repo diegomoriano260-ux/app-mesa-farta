@@ -1,9 +1,19 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
+import { EmptyState, fmtDate, Notice } from "@/components/ui";
+import { IconAlert, IconComment, IconInstagram, IconPlus, IconSend, IconSparkles, IconUsers, IconWhatsapp, IconZap } from "@/components/icons";
 
-const kindLabel: Record<string, string> = {
-  private_reply: "DM (comentário)", public_reply: "Resposta no post", dm: "DM", wa: "WhatsApp",
+const kindInfo: Record<string, { label: string; Icon: typeof IconSend }> = {
+  private_reply: { label: "Direct (comentário)", Icon: IconSend },
+  public_reply: { label: "Resposta no post", Icon: IconComment },
+  dm: { label: "Direct", Icon: IconSend },
+  wa: { label: "WhatsApp", Icon: IconWhatsapp },
 };
+
+function greeting() {
+  const h = Number(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hour12: false }));
+  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+}
 
 export default async function Painel() {
   const sql = db();
@@ -19,69 +29,89 @@ export default async function Painel() {
         coalesce('@' || c.username, c.name, c.external_id) as who
       from dispatches d join contacts c on c.id = d.contact_id
       left join automations a on a.id = d.automation_id
-      order by d.sent_at desc limit 15`,
-    sql<{ kind: string; status: string }[]>`select kind, status from channels where status <> 'disconnected'`,
+      order by d.sent_at desc limit 12`,
+    sql<{ kind: string; status: string; display_name: string | null }[]>`
+      select kind, status, display_name from channels where status <> 'disconnected' order by kind`,
   ]);
 
   const tiles = [
-    { label: "Automações ativas", value: stats.automations },
-    { label: "Contatos", value: stats.contacts },
-    { label: "Mensagens enviadas (7 dias)", value: stats.sent7 },
-    { label: "Falhas (7 dias)", value: stats.failed7 },
+    { label: "Automações ativas", value: stats.automations, Icon: IconZap },
+    { label: "Contatos", value: stats.contacts, Icon: IconUsers },
+    { label: "Enviadas em 7 dias", value: stats.sent7, Icon: IconSend },
+    { label: "Falhas em 7 dias", value: stats.failed7, Icon: IconAlert },
   ];
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Painel</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-brand-600">{greeting()}, Aline 👋</p>
+          <h1 className="mt-1 text-[26px] font-bold tracking-tight">Como está o seu Instagram hoje</h1>
+        </div>
+        <Link href="/automacoes/nova" className="btn-primary"><IconPlus className="h-[18px] w-[18px]" />Nova automação</Link>
+      </div>
 
-      {channels.length === 0 && (
-        <div className="card border-brand-100 bg-brand-50">
-          <p className="font-medium">Comece conectando o Instagram da Aline.</p>
-          <Link href="/canais" className="btn-primary mt-3">Conectar canais</Link>
+      {channels.length === 0 ? (
+        <div className="card overflow-hidden bg-gradient-to-br from-brand-50 via-white to-white">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 text-white"><IconInstagram className="h-6 w-6" /></div>
+            <div className="flex-1">
+              <p className="font-semibold">Primeiro passo: conecte o Instagram</p>
+              <p className="text-sm text-muted">Depois disso você já pode criar a primeira resposta automática.</p>
+            </div>
+            <Link href="/canais" className="btn-primary">Conectar</Link>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {channels.map((c) => (
+            <span key={c.kind + c.display_name} className={`badge py-1.5 ${c.status === "connected" ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800"}`}>
+              {c.kind === "instagram" ? <IconInstagram className="h-4 w-4" /> : <IconWhatsapp className="h-4 w-4" />}
+              {c.display_name} · {c.status === "connected" ? "conectado" : "reconectar"}
+            </span>
+          ))}
         </div>
       )}
       {channels.some((c) => c.status !== "connected") && (
-        <div className="card border-amber-200 bg-amber-50 text-amber-900">
-          Um canal precisa ser reconectado. <Link href="/canais" className="underline">Ver canais</Link>
-        </div>
+        <Notice tone="warn">Um canal precisa ser reconectado. <Link href="/canais" className="font-semibold underline">Ver canais</Link></Notice>
       )}
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {tiles.map((t) => (
-          <div key={t.label} className="card">
-            <div className="text-3xl font-semibold tabular-nums">{t.value}</div>
-            <div className="mt-1 text-sm text-neutral-500">{t.label}</div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        {tiles.map(({ label, value, Icon }) => (
+          <div key={label} className="card p-4 md:p-5">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600"><Icon className="h-[18px] w-[18px]" /></div>
+            <div className="text-3xl font-bold tabular-nums tracking-tight">{value}</div>
+            <div className="mt-0.5 text-sm text-muted">{label}</div>
           </div>
         ))}
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Últimos envios</h2>
+        <h2 className="mb-3 text-lg font-bold">Últimos envios</h2>
         {recent.length === 0 ? (
-          <p className="text-sm text-neutral-500">Nada enviado ainda.</p>
+          <EmptyState icon={<IconSparkles className="h-7 w-7" />} title="Nada enviado ainda"
+            text="Quando alguém comentar ou mandar a palavra-chave, as respostas automáticas aparecem aqui." />
         ) : (
-          <div className="card overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead className="text-left text-neutral-500">
-                <tr><th className="px-4 py-2">Quando</th><th className="px-4 py-2">Para</th><th className="px-4 py-2">Automação</th><th className="px-4 py-2">Tipo</th><th className="px-4 py-2">Status</th></tr>
-              </thead>
-              <tbody>
-                {recent.map((r) => (
-                  <tr key={r.id} className="border-t border-neutral-100">
-                    <td className="whitespace-nowrap px-4 py-2">{r.sent_at.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}</td>
-                    <td className="px-4 py-2">{r.who}</td>
-                    <td className="px-4 py-2">{r.automation ?? "—"}</td>
-                    <td className="px-4 py-2">{kindLabel[r.kind] ?? r.kind}</td>
-                    <td className="px-4 py-2">
-                      {r.status === "sent"
-                        ? <span className="badge bg-green-50 text-green-700">enviado</span>
-                        : <span className="badge bg-red-50 text-red-700" title={r.error ?? ""}>falhou</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="card divide-y divide-line p-0">
+            {recent.map((r) => {
+              const { label, Icon } = kindInfo[r.kind] ?? { label: r.kind, Icon: IconSend };
+              return (
+                <li key={r.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600"><Icon className="h-4 w-4" /></div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{r.who}</p>
+                    <p className="truncate text-xs text-muted">{label} · {r.automation ?? "—"}</p>
+                  </div>
+                  <div className="text-right">
+                    {r.status === "sent"
+                      ? <span className="badge bg-green-50 text-green-700">enviado</span>
+                      : <span className="badge bg-red-50 text-red-700" title={r.error ?? ""}>falhou</span>}
+                    <p className="mt-1 text-[11px] text-muted">{fmtDate(r.sent_at)}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </div>
