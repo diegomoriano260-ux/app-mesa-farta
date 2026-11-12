@@ -131,7 +131,14 @@ create policy own_read on dispatches for select using (owner_id = auth.uid());
 create policy own on automation_messages for all
   using (exists (select 1 from automations a where a.id = automation_id and a.owner_id = auth.uid()))
   with check (exists (select 1 from automations a where a.id = automation_id and a.owner_id = auth.uid()));
--- O token criptografado nunca vai ao navegador: o painel lê canais por uma view sem a coluna.
+-- O token criptografado nunca vai ao navegador: os papéis do cliente (anon,
+-- authenticated) não leem nem gravam a coluna; só o servidor (service role) mexe nela.
+revoke all on channels from anon, authenticated;
+grant select (id, owner_id, kind, external_id, display_name, token_expires_at, status, created_at, updated_at)
+  on channels to authenticated;
+grant update (display_name, status) on channels to authenticated;
+grant delete on channels to authenticated;
+-- O painel lê canais por esta view, sem a coluna do token.
 create view channels_public with (security_invoker = true) as
   select id, owner_id, kind, external_id, display_name, token_expires_at, status, created_at
   from channels;
