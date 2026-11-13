@@ -95,10 +95,10 @@ export async function handleEvent(ev: InboundEvent): Promise<HandleResult> {
           await ig.replyToComment(token, ev.eventId, step.text);
           break;
         case "private_reply":
-          await ig.sendMessage(token, { comment_id: ev.eventId }, step.content);
+          await ig.sendMessage(token, channel.external_id, { comment_id: ev.eventId }, step.content);
           break;
         case "dm":
-          await ig.sendMessage(token, { id: ev.fromId }, step.content);
+          await ig.sendMessage(token, channel.external_id, { id: ev.fromId }, step.content);
           break;
         case "wa":
           await wa.sendMessage(token, channel.external_id, ev.fromId, step.content);

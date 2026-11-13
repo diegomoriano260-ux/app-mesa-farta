@@ -1,8 +1,13 @@
-import { GRAPH_VERSION, IG_GRAPH, IG_OAUTH, env } from "../env";
+import { FB_GRAPH, GRAPH_VERSION, IG_GRAPH, IG_OAUTH, env } from "../env";
 import { graphFetch } from "./graph";
 import type { MessageContent } from "./types";
 
-const base = () => `${IG_GRAPH()}/${GRAPH_VERSION()}`;
+// Dois tipos de token:
+//  - "IG..."  login do Instagram -> graph.instagram.com, usa /me
+//  - "EAA..." login unificado / usuário do sistema -> graph.facebook.com, usa /{id da conta do Instagram}
+export const isFbToken = (token: string) => token.startsWith("EAA");
+const base = (token?: string) => `${token && isFbToken(token) ? FB_GRAPH() : IG_GRAPH()}/${GRAPH_VERSION()}`;
+const node = (token: string, igId?: string) => (isFbToken(token) ? encodeURIComponent(igId ?? "") : "me");
 
 export const IG_SCOPES = [
   "instagram_business_basic",
@@ -57,27 +62,37 @@ export async function refreshToken(token: string) {
 // user_id é o mesmo id que chega como entry.id nos webhooks.
 export function getMe(token: string) {
   return graphFetch<{ user_id: string; username: string; name?: string }>(
-    `${base()}/me?fields=user_id,username,name`,
+    `${base(token)}/me?fields=user_id,username,name`,
     { token },
   );
 }
 
-export function subscribeWebhooks(token: string) {
-  return graphFetch(`${base()}/me/subscribed_apps?subscribed_fields=comments,messages`, { method: "POST", token });
+// Conta do Instagram pelo id (token "EAA..."). Devolve no mesmo formato de getMe.
+export async function getAccount(token: string, igId: string) {
+  if (!isFbToken(token)) return getMe(token);
+  const r = await graphFetch<{ id: string; username: string; name?: string }>(
+    `${base(token)}/${encodeURIComponent(igId)}?fields=id,username,name`,
+    { token },
+  );
+  return { user_id: r.id, username: r.username, name: r.name };
+}
+
+export function subscribeWebhooks(token: string, igId?: string) {
+  return graphFetch(`${base(token)}/${node(token, igId)}/subscribed_apps?subscribed_fields=comments,messages`, { method: "POST", token });
 }
 
 export type IgMedia = { id: string; caption?: string; media_type: string; thumbnail_url?: string; media_url?: string; permalink?: string; timestamp: string };
 
-export async function listMedia(token: string, limit = 24): Promise<IgMedia[]> {
+export async function listMedia(token: string, igId?: string, limit = 24): Promise<IgMedia[]> {
   const r = await graphFetch<{ data: IgMedia[] }>(
-    `${base()}/me/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=${limit}`,
+    `${base(token)}/${node(token, igId)}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=${limit}`,
     { token },
   );
   return r.data ?? [];
 }
 
 export function replyToComment(token: string, commentId: string, message: string) {
-  return graphFetch(`${base()}/${encodeURIComponent(commentId)}/replies`, {
+  return graphFetch(`${base(token)}/${encodeURIComponent(commentId)}/replies`, {
     method: "POST",
     token,
     body: JSON.stringify({ message }),
@@ -105,8 +120,8 @@ export function toIgMessage(c: MessageContent): Record<string, unknown> {
 }
 
 // recipient: { id: IGSID } para DM, { comment_id } para private reply (1 por comentário).
-export function sendMessage(token: string, recipient: { id: string } | { comment_id: string }, content: MessageContent) {
-  return graphFetch(`${base()}/me/messages`, {
+export function sendMessage(token: string, igId: string, recipient: { id: string } | { comment_id: string }, content: MessageContent) {
+  return graphFetch(`${base(token)}/${node(token, igId)}/messages`, {
     method: "POST",
     token,
     body: JSON.stringify({ recipient, message: toIgMessage(content) }),

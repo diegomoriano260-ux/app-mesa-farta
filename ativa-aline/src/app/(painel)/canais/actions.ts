@@ -48,30 +48,32 @@ export async function disconnect(form: FormData) {
 export async function connectInstagramToken(_: { error?: string; ok?: string } | undefined, form: FormData) {
   await requireSession();
   const token = String(form.get("token") ?? "").trim().replace(/\s+/g, "");
+  const igId = String(form.get("ig_account_id") ?? "").trim();
   if (!token) return { error: "Cole o token gerado no painel da Meta." };
-  if (token.startsWith("EAA")) {
-    return { error: "Esse token é do tipo Facebook (começa com EAA). Me mande um print da tela onde você gerou, que eu adapto o app." };
+  const fb = ig.isFbToken(token);
+  if (fb && !/^\d+$/.test(igId)) {
+    return { error: "Esse token (começa com EAA) precisa do ID da conta do Instagram: o número que aparece embaixo do nome da Aline no painel da Meta." };
   }
   let me;
   try {
-    me = await ig.getMe(token);
+    me = await ig.getAccount(token, igId);
   } catch (e) {
     return { error: `A Meta recusou o token: ${e instanceof Error ? e.message.slice(0, 200) : e}` };
   }
   let warn = "";
   try {
-    await ig.subscribeWebhooks(token);
+    await ig.subscribeWebhooks(token, String(me.user_id));
   } catch (e) {
-    warn = ` (aviso: não consegui ativar os avisos automáticos: ${e instanceof Error ? e.message.slice(0, 120) : e})`;
+    warn = ` (aviso: não consegui ativar os avisos automáticos por aqui: ${e instanceof Error ? e.message.slice(0, 120) : e})`;
   }
-  // Token do painel dura ~60 dias; o cron renova quando faltar menos de 10.
-  const expiresAt = new Date(Date.now() + 55 * 24 * 3600 * 1000);
+  // Token "IG..." dura ~60 dias e o cron renova. Token "EAA..." de usuário do sistema não expira.
+  const expiresAt = fb ? null : new Date(Date.now() + 55 * 24 * 3600 * 1000);
   await db()`
     insert into channels (kind, external_id, display_name, access_token_enc, token_expires_at, status, last_error)
-    values ('instagram', ${String(me.user_id)}, ${"@" + me.username}, ${encrypt(token)}, ${expiresAt}, 'connected', null)
+    values ('instagram', ${String(me.user_id)}, ${"@" + me.username}, ${encrypt(token)}, ${expiresAt}, 'connected', ${warn || null})
     on conflict (kind, external_id) do update set
       display_name = excluded.display_name, access_token_enc = excluded.access_token_enc,
-      token_expires_at = excluded.token_expires_at, status = 'connected', last_error = null`;
+      token_expires_at = excluded.token_expires_at, status = 'connected', last_error = excluded.last_error`;
   revalidatePath("/canais");
   revalidatePath("/");
   return { ok: `Instagram @${me.username} conectado!${warn}` };

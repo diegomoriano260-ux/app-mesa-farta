@@ -26,12 +26,12 @@ export async function loadChannels(): Promise<ChannelOpt[]> {
 // Posts do Instagram para escolher no editor. Se a Meta falhar, o editor deixa digitar o ID.
 export async function loadPosts(channels: ChannelOpt[]): Promise<Record<string, IgMedia[]>> {
   const out: Record<string, IgMedia[]> = {};
-  const rows = await db()<{ id: string; access_token_enc: string }[]>`
-    select id, access_token_enc from channels where kind = 'instagram' and status = 'connected'`;
+  const rows = await db()<{ id: string; access_token_enc: string; external_id: string }[]>`
+    select id, access_token_enc, external_id from channels where kind = 'instagram' and status = 'connected'`;
   await Promise.all(
     rows.filter((r) => channels.some((c) => c.id === r.id)).map(async (r) => {
       try {
-        out[r.id] = await listMedia(decrypt(r.access_token_enc));
+        out[r.id] = await listMedia(decrypt(r.access_token_enc), r.external_id);
       } catch (e) {
         console.error("[posts]", e);
         out[r.id] = [];
