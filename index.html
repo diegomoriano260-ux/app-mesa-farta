@@ -26,17 +26,30 @@
     .clip h3 { margin: 0; font-size: 16px; }
     .clip p { margin: 0; font-size: 13px; color: var(--muted); }
     .clip a { color: var(--accent); font-weight: 600; }
+    [hidden] { display: none !important; }
+    #summary:empty { display: none; }
+    #summary { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+    #summary h2 { margin: 0 0 8px; }
+    #summary h3 { margin: 24px 0 8px; font-size: 18px; }
+    #summary h4 { margin: 12px 0 4px; font-size: 15px; }
+    #summary ul { margin: 0; padding-left: 20px; }
+    #summary .muted { color: var(--muted); }
+    #summary .downloads a { color: var(--accent); font-weight: 600; margin-right: 16px; }
+    #summary pre { white-space: pre-wrap; font-size: 13px; color: var(--muted); max-height: 400px; overflow: auto; }
   </style>
 </head>
 <body>
 <main>
   <h1>Recorte</h1>
-  <p class="sub">Envie um vídeo longo e receba cortes verticais com legenda, prontos para Reels, TikTok e Shorts. O vídeo fica no seu computador: só o texto falado vai para a IA.</p>
+  <p class="sub">Transforme um vídeo longo em cortes verticais com legenda para Reels, TikTok e Shorts, ou a gravação de uma reunião em resumo, decisões e tarefas. O arquivo fica no seu computador: só o texto falado vai para a IA.</p>
 
   <form id="form">
-    <label>Vídeo <input type="file" id="file" accept="video/*" required></label>
+    <label>O que fazer
+      <select id="mode"><option value="clips" selected>Cortes para redes sociais</option><option value="summary">Resumo de reunião</option></select>
+    </label>
+    <label>Vídeo ou áudio <input type="file" id="file" accept="video/*,audio/*" required></label>
     <div class="row">
-      <label>Quantos cortes
+      <label id="countField">Quantos cortes
         <select id="count"><option>1</option><option>2</option><option selected>3</option><option>5</option><option>8</option></select>
       </label>
       <label>Idioma falado
@@ -50,6 +63,7 @@
   </form>
 
   <div id="status" role="status" aria-live="polite"></div>
+  <div id="summary"></div>
   <div id="clips"></div>
 </main>
 <script type="module" src="app.js"></script>

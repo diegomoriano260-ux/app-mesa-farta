@@ -1,13 +1,61 @@
 import { makeCues, cueAt } from './cues.js';
+import { fmt, summaryMarkdown, transcriptText } from './report.js';
 
 const $ = id => document.getElementById(id);
 const status = msg => { $('status').textContent = msg; };
 const W = 720, H = 1280;
 
+$('mode').addEventListener('change', () => {
+  const summary = $('mode').value === 'summary';
+  $('countField').hidden = summary;
+  $('go').textContent = summary ? 'Gerar resumo' : 'Gerar cortes';
+});
+
+async function api(path, payload) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-access-code': $('code').value },
+    body: JSON.stringify(payload),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `servidor respondeu ${res.status}`);
+  return body;
+}
+
+function el(tag, props = {}, ...children) {
+  const node = Object.assign(document.createElement(tag), props);
+  node.append(...children);
+  return node;
+}
+
+function showSummary(s, segments, fileName) {
+  const base = fileName.replace(/\.[^.]+$/, '');
+  const download = (text, name, label) =>
+    el('a', { href: URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' })), download: name, textContent: label });
+  const list = items => el('ul', {}, ...items.map(t => el('li', { textContent: t })));
+  const section = (title, ...body) => el('section', {}, el('h3', { textContent: title }), ...body);
+
+  $('summary').append(
+    el('h2', { textContent: s.title }),
+    el('p', { textContent: s.summary }),
+    section('Tópicos', ...s.topics.map(t => el('div', { className: 'topic' },
+      el('h4', { textContent: `${fmt(t.start)} · ${t.title}` }), list(t.points)))),
+    section('Decisões', s.decisions.length ? list(s.decisions) : el('p', { className: 'muted', textContent: 'Nenhuma decisão registrada.' })),
+    section('Tarefas', s.action_items.length
+      ? list(s.action_items.map(a => [a.task, a.owner && `responsável: ${a.owner}`, a.due && `prazo: ${a.due}`].filter(Boolean).join(' · ')))
+      : el('p', { className: 'muted', textContent: 'Nenhuma tarefa registrada.' })),
+    el('p', { className: 'downloads' },
+      download(summaryMarkdown(s), `${base}-resumo.md`, 'Baixar resumo (.md)'), ' ',
+      download(transcriptText(segments), `${base}-transcricao.txt`, 'Baixar transcrição (.txt)')),
+    el('details', {}, el('summary', { textContent: 'Transcrição completa' }), el('pre', { textContent: transcriptText(segments) })),
+  );
+}
+
 $('form').addEventListener('submit', async e => {
   e.preventDefault();
   $('go').disabled = true;
   $('clips').replaceChildren();
+  $('summary').replaceChildren();
   try {
     await run($('file').files[0]);
   } catch (err) {
@@ -19,7 +67,7 @@ $('form').addEventListener('submit', async e => {
 });
 
 async function run(file) {
-  status('Lendo o áudio do vídeo…');
+  status('Lendo o áudio do arquivo…');
   const audio = await decodeAudio(file);
   const duration = audio.length / 16000;
 
@@ -34,16 +82,18 @@ async function run(file) {
     chunk_length_s: 30, stride_length_s: 5, return_timestamps: true, ...(lang && { language: lang, task: 'transcribe' }),
   });
   const segments = out.chunks.map(c => ({ start: c.timestamp[0], end: c.timestamp[1] ?? duration, text: c.text }));
-  if (!segments.length) throw new Error('Nenhuma fala encontrada no vídeo.');
+  if (!segments.length) throw new Error('Nenhuma fala encontrada na gravação.');
+
+  if ($('mode').value === 'summary') {
+    status('Resumindo a reunião com o Claude…');
+    const summary = await api('/api/summary', { segments, duration });
+    showSummary(summary, segments, file.name);
+    status('Pronto: resumo da reunião.');
+    return;
+  }
 
   status('Escolhendo os melhores momentos com o Claude…');
-  const res = await fetch('/api/highlights', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-access-code': $('code').value },
-    body: JSON.stringify({ segments, duration, count: $('count').value }),
-  });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || `servidor respondeu ${res.status}`);
+  const body = await api('/api/highlights', { segments, duration, count: $('count').value });
   if (!body.clips.length) throw new Error('A IA não encontrou trechos bons neste vídeo.');
 
   const cues = makeCues(out.chunks, duration);
@@ -151,9 +201,4 @@ function addCard(clip, blob, ext, i) {
   const a = Object.assign(document.createElement('a'), { href: url, download: `corte-${i + 1}.${ext}`, textContent: `Baixar .${ext}` });
   card.append(v, h, p, a);
   $('clips').append(card);
-}
-
-function fmt(s) {
-  const m = Math.floor(s / 60), r = Math.floor(s % 60);
-  return `${m}:${String(r).padStart(2, '0')}`;
 }
