@@ -1,0 +1,26 @@
+{
+  "name": "cortes",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diegomoriano260-ux/app-mesa-farta.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/diegomoriano260-ux/app-mesa-farta/issues"
+  },
+  "homepage": "https://github.com/diegomoriano260-ux/app-mesa-farta#readme",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "zod": "^4.6.7"
+  }
+}
