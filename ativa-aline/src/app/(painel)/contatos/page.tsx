@@ -45,7 +45,7 @@ export default async function Contatos({ searchParams }: { searchParams: Promise
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{name}</p>
+                  <Link href={`/conversas/${c.id}`} className="block truncate text-sm font-semibold hover:underline">{name}</Link>
                   <p className="text-xs text-muted">{fmtDate(c.last_seen)}</p>
                   {c.tags.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1">{c.tags.map((t) => <span key={t} className="chip py-0.5">{t}</span>)}</div>}
                 </div>

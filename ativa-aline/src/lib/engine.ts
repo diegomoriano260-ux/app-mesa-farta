@@ -48,7 +48,8 @@ export function planSteps(ev: Pick<InboundEvent, "kind">, a: AutomationRow): Ste
 export type HandleResult =
   | "no_channel" | "self" | "duplicate" | "bot_paused" | "no_match" | "handled";
 
-export async function handleEvent(ev: InboundEvent): Promise<HandleResult> {
+export async function handleEvent(input: InboundEvent): Promise<HandleResult> {
+  let ev = input;
   const sql = db();
   const [channel] = await sql<{ id: string; access_token_enc: string; external_id: string }[]>`
     select id, access_token_enc, external_id from channels
@@ -57,6 +58,16 @@ export async function handleEvent(ev: InboundEvent): Promise<HandleResult> {
   if (ev.fromSelf) return "self";
 
   const isMessage = ev.kind !== "ig_comment";
+  // Direct não traz o @: busca o perfil só quando o contato ainda não tem nome.
+  if (ev.kind === "ig_dm" && !ev.fromUsername) {
+    const [known] = await sql<{ username: string | null }[]>`
+      select username from contacts where channel_id = ${channel.id} and external_id = ${ev.fromId}`;
+    if (!known?.username) {
+      const p = await ig.getSenderProfile(decrypt(channel.access_token_enc), ev.fromId);
+      ev = { ...ev, fromUsername: p.username, fromName: p.name };
+    }
+  }
+
   const [contact] = await sql<{ id: string; bot_paused: boolean }[]>`
     insert into contacts (channel_id, external_id, name, username, last_inbound_at)
     values (${channel.id}, ${ev.fromId}, ${ev.fromName ?? null}, ${ev.fromUsername ?? null},
@@ -108,9 +119,11 @@ export async function handleEvent(ev: InboundEvent): Promise<HandleResult> {
       error = e instanceof Error ? e.message : String(e);
       console.error("[motor] falha ao enviar", step.kind, error);
     }
+    const content = step.kind === "public_reply" ? { kind: "text", text: step.text } : step.content;
     await sql`
-      insert into dispatches (automation_id, contact_id, inbound_event_id, kind, status, error)
-      values (${a.id}, ${contact.id}, ${inbound.id}, ${step.kind}, ${error ? "failed" : "sent"}, ${error})
+      insert into dispatches (automation_id, contact_id, inbound_event_id, kind, status, error, content)
+      values (${a.id}, ${contact.id}, ${inbound.id}, ${step.kind}, ${error ? "failed" : "sent"}, ${error},
+              ${sql.json(content as never)})
       on conflict do nothing`;
     if (error && step.kind !== "public_reply") break; // não manda o resto fora de ordem
   }

@@ -127,3 +127,15 @@ export function sendMessage(token: string, igId: string, recipient: { id: string
     body: JSON.stringify({ recipient, message: toIgMessage(content) }),
   });
 }
+
+// Perfil de quem mandou mensagem (o webhook de Direct não traz o @). Melhor esforço.
+export async function getSenderProfile(token: string, igsid: string): Promise<{ username?: string; name?: string }> {
+  try {
+    return await graphFetch<{ username?: string; name?: string }>(
+      `${base(token)}/${encodeURIComponent(igsid)}?fields=name,username`,
+      { token },
+    );
+  } catch {
+    return {};
+  }
+}
