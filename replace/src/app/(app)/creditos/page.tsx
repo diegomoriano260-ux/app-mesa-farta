@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireUser, saasMode } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { confirmPayment } from "@/lib/mercadopago";
 import { brl, PACKS, PRICES, SIGNUP_BONUS } from "@/lib/pricing";
@@ -12,6 +12,7 @@ const KIND: Record<string, string> = { compra: "Compra", bonus: "Bônus", uso: "
 
 export default async function Creditos({ searchParams }: { searchParams: Promise<{ payment_id?: string; pagamento?: string }> }) {
   const sp = await searchParams;
+  if (!saasMode()) redirect("/");
   // volta do Mercado Pago: confere na hora (o aviso automático também chega pelo webhook)
   // e recarrega sem o id, para o saldo do topo já aparecer atualizado
   if (sp.payment_id && process.env.MP_ACCESS_TOKEN) {

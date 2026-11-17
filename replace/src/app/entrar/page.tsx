@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { currentUser } from "@/lib/auth";
+import { currentUser, saasMode } from "@/lib/auth";
 import { brl, SIGNUP_BONUS } from "@/lib/pricing";
 import { AuthForms } from "./forms";
 
@@ -15,7 +15,7 @@ export default async function Entrar() {
           <h1 className="text-2xl font-bold tracking-tight">Replace</h1>
           <p className="mt-1 text-sm text-muted">Transcreva, resuma e transforme vídeos longos em Reels com IA</p>
         </div>
-        <AuthForms bonus={brl(SIGNUP_BONUS)} />
+        <AuthForms bonus={brl(SIGNUP_BONUS)} saas={saasMode()} />
       </div>
     </main>
   );

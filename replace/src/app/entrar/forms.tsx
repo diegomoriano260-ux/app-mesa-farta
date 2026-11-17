@@ -2,10 +2,23 @@
 import { useActionState, useState } from "react";
 import { criarConta, entrar } from "./actions";
 
-export function AuthForms({ bonus }: { bonus: string }) {
+export function AuthForms({ bonus, saas }: { bonus: string; saas: boolean }) {
   const [tab, setTab] = useState<"entrar" | "criar">("criar");
   const [eState, eAction, ePending] = useActionState(entrar, undefined);
   const [cState, cAction, cPending] = useActionState(criarConta, undefined);
+  if (!saas) {
+    return (
+      <div className="card p-6">
+        <form action={eAction} className="space-y-3">
+          <input type="hidden" name="email" value="admin" />
+          <label className="label" htmlFor="senha">Senha</label>
+          <input id="senha" name="senha" type="password" required autoFocus className="input" autoComplete="current-password" />
+          {eState?.error && <p className="text-sm text-red-700">{eState.error}</p>}
+          <button className="btn-primary w-full py-3 text-base" disabled={ePending}>{ePending ? "Entrando..." : "Entrar"}</button>
+        </form>
+      </div>
+    );
+  }
   return (
     <div className="card p-6">
       <div className="mb-5 grid grid-cols-2 rounded-xl bg-brand-50 p-1">

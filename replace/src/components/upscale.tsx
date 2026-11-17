@@ -12,7 +12,7 @@ export function UpscalePanel({ clip, seconds, name, aspect }: { clip: Blob; seco
   const [msg, setMsg] = useState("");
   const [needCredit, setNeedCredit] = useState(false);
   const [out, setOut] = useState<{ local: string; remote: string; blob: Blob } | null>(null);
-  const [me, setMe] = useState<{ is_admin: boolean; balance_cents: number } | null>(null);
+  const [me, setMe] = useState<{ is_admin: boolean; balance_cents: number; saas: boolean } | null>(null);
   const [demoState, setDemoState] = useState<"" | "salvando" | "ok">("");
   const before = useMemo(() => URL.createObjectURL(clip), [clip]);
   const cost = upscaleCost(seconds, res);
@@ -79,10 +79,10 @@ export function UpscalePanel({ clip, seconds, name, aspect }: { clip: Blob; seco
             ))}
           </div>
           <p className="text-xs text-muted">
-            Custa <b>{brl(cost)}</b> {me && !me.is_admin && <>· seu saldo: <b>{brl(me.balance_cents)}</b></>}. Leva de 2 a 10 minutos. Se a IA falhar, o valor volta.
+            {me?.saas === false ? <>Custo no Replicate: cerca de <b>{brl(cost / 2)}</b> (cobrado na sua conta de lá).</> : <>Custa <b>{brl(cost)}</b> {me && !me.is_admin && <>· seu saldo: <b>{brl(me.balance_cents)}</b></>}.</>} Leva de 2 a 10 minutos. Se a IA falhar, o valor volta.
           </p>
           <button className="btn-primary" disabled={busy} onClick={run}>
-            {step === "upload" ? "Enviando o clipe..." : step === "ia" ? `IA trabalhando... ${msg}` : step === "baixar" ? "Baixando o resultado..." : `Melhorar com IA por ${brl(cost)}`}
+            {step === "upload" ? "Enviando o clipe..." : step === "ia" ? `IA trabalhando... ${msg}` : step === "baixar" ? "Baixando o resultado..." : me?.saas === false || me?.is_admin ? "Melhorar com IA" : `Melhorar com IA por ${brl(cost)}`}
           </button>
           {step === "ia" && <div className="h-1.5 animate-pulse rounded-full bg-brand-200" />}
           {step === "error" && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{msg}</p>}
@@ -94,7 +94,7 @@ export function UpscalePanel({ clip, seconds, name, aspect }: { clip: Blob; seco
           <CompareSlider before={before} after={out.local} labelAfter={`IA ${res === "4k" ? "4K" : "1080p"}`} aspect={aspect} />
           <div className="flex flex-wrap justify-center gap-2">
             <a className="btn-primary" href={out.local} download={`${name}-${res}-ia.mp4`}><IconDownload className="h-4 w-4" />Baixar versão {res === "4k" ? "4K" : "1080p"}</a>
-            {me?.is_admin && (
+            {me?.is_admin && me.saas && (
               <button className="btn-secondary" disabled={demoState !== ""} onClick={saveDemo}>
                 {demoState === "ok" ? "Demo salva ✓" : demoState === "salvando" ? "Salvando demo..." : `Usar como demo de ${res === "4k" ? "4K" : "1080p"}`}
               </button>

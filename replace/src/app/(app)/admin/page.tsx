@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireUser, saasMode } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { brl } from "@/lib/pricing";
 import { darCreditos } from "./actions";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Admin() {
   const me = await requireUser();
-  if (!me.is_admin) redirect("/");
+  if (!me.is_admin || !saasMode()) redirect("/");
   const sql = db();
   const [[tot], users, compras] = await Promise.all([
     sql<{ clientes: number; vendido: number; uso30: number; saldo: number }[]>`

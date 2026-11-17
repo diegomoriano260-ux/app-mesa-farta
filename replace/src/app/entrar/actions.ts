@@ -1,6 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
-import { adminUser, endSession, hashPassword, startSession, verifyPassword } from "@/lib/auth";
+import { adminUser, endSession, hashPassword, saasMode, startSession, verifyPassword } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { credit } from "@/lib/credits";
@@ -12,10 +12,10 @@ const slow = () => new Promise((r) => setTimeout(r, 400));
 
 export async function entrar(_: State, form: FormData): Promise<State> {
   await slow();
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  const email = String(form.get("email") ?? "admin").trim().toLowerCase() || "admin";
   const senha = String(form.get("senha") ?? "");
-  if (email === "admin") {
-    if (!safeEqual(hmacHex("pw", senha), hmacHex("pw", env("ADMIN_PASSWORD")))) return { error: "E-mail ou senha incorretos." };
+  if (email === "admin" || !saasMode()) {
+    if (!safeEqual(hmacHex("pw", senha), hmacHex("pw", env("ADMIN_PASSWORD")))) return { error: saasMode() ? "E-mail ou senha incorretos." : "Senha incorreta." };
     const u = await adminUser();
     await startSession(u.id);
     redirect("/");
@@ -28,6 +28,7 @@ export async function entrar(_: State, form: FormData): Promise<State> {
 
 export async function criarConta(_: State, form: FormData): Promise<State> {
   await slow();
+  if (!saasMode()) return { error: "O cadastro de clientes ainda não está aberto." };
   const nome = String(form.get("nome") ?? "").trim().slice(0, 80);
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const senha = String(form.get("senha") ?? "");

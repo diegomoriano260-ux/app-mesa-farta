@@ -12,6 +12,11 @@ const MAX_AGE = 60 * 60 * 24 * 30;
 
 export type User = { id: string; email: string; name: string | null; balance_cents: number; is_admin: boolean };
 
+// Modo vendas (contas, créditos, Mercado Pago) liga sozinho quando existe banco de dados.
+// Sem banco = modo pessoal: só o dono entra, com a senha, e usa à vontade.
+export const saasMode = () => !!process.env.DATABASE_URL;
+const OWNER: User = { id: "dono", email: "admin", name: "Você", balance_cents: 0, is_admin: true };
+
 export async function hashPassword(pw: string): Promise<string> {
   const salt = randomBytes(16);
   const key = await scrypt(pw, salt, 32);
@@ -47,6 +52,7 @@ export async function currentUser(): Promise<User | null> {
   const [uid, expS] = v.split(".");
   const exp = Number(expS);
   if (!uid || !Number.isFinite(exp) || exp < Date.now() / 1000 || !safeEqual(v, sign(uid, exp))) return null;
+  if (!saasMode()) return uid === OWNER.id ? OWNER : null;
   const [u] = await db()<User[]>`select id, email, name, balance_cents, is_admin from rp_users where id = ${uid}`;
   return u ?? null;
 }
@@ -59,6 +65,7 @@ export async function requireUser(): Promise<User> {
 
 // Login do dono: e-mail "admin" + ADMIN_PASSWORD. Cria a conta de administrador na primeira vez.
 export async function adminUser(): Promise<User> {
+  if (!saasMode()) return OWNER;
   const sql = db();
   const [u] = await sql<User[]>`
     insert into rp_users (email, name, pass_hash, is_admin) values ('admin', 'Administrador', 'admin-env', true)

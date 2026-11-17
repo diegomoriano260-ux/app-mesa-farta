@@ -1,7 +1,7 @@
 import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { currentUser } from "@/lib/auth";
+import { currentUser, saasMode } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { payOrFail } from "@/lib/guard";
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   if (!res.ok) { await pay.refund(); return NextResponse.json({ error: friendly(res.status, text) }, { status: 502 }); }
   const p = JSON.parse(text) as { id: string; status: string };
   // marca o débito com o id da tarefa, para estornar se a IA falhar depois
-  await db()`update rp_ledger set ref = ${"upscale:" + p.id} where user_id = ${pay.user.id} and ref = ${tmp}`;
+  if (saasMode() && !pay.user.is_admin) await db()`update rp_ledger set ref = ${"upscale:" + p.id} where user_id = ${pay.user.id} and ref = ${tmp}`;
   return NextResponse.json({ id: p.id, status: p.status });
 }
 
@@ -59,7 +59,7 @@ export async function GET(req: Request) {
   const p = JSON.parse(text) as { status: string; output?: string | string[] | null; error?: string | null };
   const done = ["succeeded", "failed", "canceled"].includes(p.status);
   if (done && blobUrl && process.env.BLOB_READ_WRITE_TOKEN) await del(blobUrl).catch(() => {});
-  if (p.status === "failed" || p.status === "canceled") await refundJob(user.id, `upscale:${id}`);
+  if ((p.status === "failed" || p.status === "canceled") && saasMode() && !user.is_admin) await refundJob(user.id, `upscale:${id}`);
   const output = Array.isArray(p.output) ? p.output[0] : p.output ?? null;
   return NextResponse.json({ status: p.status, output, error: p.error ?? null });
 }
