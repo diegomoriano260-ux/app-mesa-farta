@@ -39,27 +39,32 @@ graphify install
 Passo '4/6 GRAPHIFY_BACKEND=none e idioma português em ~/.claude/settings.json'
 New-Item -ItemType Directory -Force -Path $claudeDir | Out-Null
 $settingsPath = Join-Path $claudeDir 'settings.json'
-if (Test-Path $settingsPath) {
-    $texto = [IO.File]::ReadAllText($settingsPath, $utf8)
-    Copy-Item $settingsPath "$settingsPath.bak" -Force
-    $settings = if ($texto.Trim()) { $texto | ConvertFrom-Json } else { New-Object PSObject }
-} else {
-    $settings = New-Object PSObject
-}
-if (-not $settings.PSObject.Properties['env']) {
-    $settings | Add-Member -NotePropertyName env -NotePropertyValue (New-Object PSObject)
-}
-if ($settings.env.PSObject.Properties['GRAPHIFY_BACKEND']) {
-    $settings.env.GRAPHIFY_BACKEND = 'none'
-} else {
-    $settings.env | Add-Member -NotePropertyName GRAPHIFY_BACKEND -NotePropertyValue 'none'
-}
-if ($settings.PSObject.Properties['language']) {
-    $settings.language = 'portuguese'
-} else {
-    $settings | Add-Member -NotePropertyName language -NotePropertyValue 'portuguese'
-}
-[IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 50), $utf8)
+# A cópia só é feita uma vez, para guardar sempre o arquivo original
+if ((Test-Path $settingsPath) -and -not (Test-Path "$settingsPath.bak")) { Copy-Item $settingsPath "$settingsPath.bak" }
+# O JSON é editado com o Python que veio junto com o graphify, e não com
+# ConvertFrom-Json: no Windows PowerShell ele confunde chaves que só diferem
+# em maiúsculas/minúsculas (como NO_PROXY e no_proxy) e se recusa a ler o arquivo.
+$pastaGraphify = Join-Path ((uv tool dir) | Select-Object -Last 1).Trim() 'graphifyy'
+$python = @('Scripts\python.exe', 'bin/python') |
+    ForEach-Object { Join-Path $pastaGraphify $_ } |
+    Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $python) { throw "Python do graphify não encontrado em $pastaGraphify." }
+$codigo = @'
+import json, sys
+caminho = sys.argv[1]
+try:
+    texto = open(caminho, encoding="utf-8-sig").read()
+except FileNotFoundError:
+    texto = ""
+dados = json.loads(texto) if texto.strip() else {}
+dados.setdefault("env", {})["GRAPHIFY_BACKEND"] = "none"
+dados["language"] = "portuguese"
+with open(caminho, "w", encoding="utf-8", newline="\n") as f:
+    json.dump(dados, f, indent=2, ensure_ascii=False)
+    f.write("\n")
+'@
+$codigo | & $python - $settingsPath
+if ($LASTEXITCODE -ne 0) { throw "Não consegui atualizar $settingsPath. O original continua em settings.json.bak." }
 Write-Host "ok: $settingsPath (cópia do original em settings.json.bak)"
 
 # 5. Regras de economia de tokens no CLAUDE.md geral (copiadas do CLAUDE.md do projeto)
