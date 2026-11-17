@@ -7,6 +7,7 @@ export type CaptionStyle = "destaque" | "classico" | "caixa" | "neon";
 export type CaptionPos = "baixo" | "meio" | "topo";
 export type CaptionSize = "P" | "M" | "G";
 export type AudioClean = "off" | "suave" | "forte";
+export type Quality = "720" | "1080" | "4k";
 // Área do vídeo original que aparece no clipe (frações de 0 a 1 da largura/altura).
 export type CropBox = { x: number; y: number; w: number; h: number };
 
@@ -31,17 +32,27 @@ export type EditSettings = {
   maskTop?: number;        // tarja preta em cima do vídeo original (0..0.5)
   maskBottom?: number;     // tarja preta embaixo do vídeo original (0..0.5)
   audioClean?: AudioClean; // limpeza do áudio
+  quality?: Quality;       // resolução de saída
+  enhance?: boolean;       // melhorar imagem: tira granulação, dá nitidez, acerta contraste e cor
 };
 
 export const DIMS: Record<Aspect, [number, number]> = {
   "9:16": [720, 1280], "1:1": [720, 720], "4:5": [720, 900], "16:9": [1280, 720],
 };
 
+const SCALE: Record<Quality, number> = { "720": 1, "1080": 1.5, "4k": 3 };
+// Dimensões finais do vídeo conforme formato e qualidade (sempre pares, exigência do H.264).
+export function dimsOf(s: Pick<EditSettings, "aspect" | "quality">): [number, number] {
+  const [w, h] = DIMS[s.aspect];
+  const k = SCALE[s.quality ?? "720"];
+  return [Math.round((w * k) / 2) * 2, Math.round((h * k) / 2) * 2];
+}
+
 export function defaultSettings(start: number, end: number): EditSettings {
   return {
     start, end, aspect: "9:16", fit: "crop", captions: true, style: "destaque", pos: "baixo", size: "M",
     cues: null, title: "", handle: "", originalVolume: 1, musicVolume: 0.25,
-    crop: null, maskTop: 0, maskBottom: 0, audioClean: "suave",
+    crop: null, maskTop: 0, maskBottom: 0, audioClean: "suave", quality: "1080", enhance: true,
   };
 }
 
@@ -82,7 +93,7 @@ const STYLE: Record<CaptionStyle, { primary: string; secondary: string; outline:
 };
 
 export function buildAss(s: EditSettings, cues: Cue[]): string {
-  const [W, H] = DIMS[s.aspect];
+  const [W, H] = dimsOf(s);
   const base = Math.round(Math.min(W, H) / 720 * 64);
   const size = Math.round(base * { P: 0.8, M: 1, G: 1.3 }[s.size]);
   const st = STYLE[s.style];
@@ -129,18 +140,21 @@ export function maskFilter(s: EditSettings): string {
 
 // Filtro de vídeo do ffmpeg para o formato e o enquadramento escolhidos.
 export function videoFilter(s: EditSettings, withSubs: boolean): string {
-  const [W, H] = DIMS[s.aspect];
+  const [W, H] = dimsOf(s);
   const subs = withSubs ? ",subtitles=/legenda.ass:fontsdir=/fonts" : "";
-  const pre = `[0:v]${maskFilter(s)}`;
+  const denoise = s.enhance ? "hqdn3d=2:1.5:6:5," : "";
+  const sharpen = s.enhance ? `,unsharp=5:5:${s.quality === "720" ? "0.6" : "0.9"}:3:3:0.3,eq=contrast=1.05:saturation=1.12:gamma=1.02` : "";
+  const pre = `[0:v]${maskFilter(s)}${denoise}`;
+  const scale = `scale=${W}:${H}:flags=lanczos`;
   if (s.crop) {
     const c = s.crop;
-    return `${pre}crop=iw*${f4(c.w)}:ih*${f4(c.h)}:iw*${f4(c.x)}:ih*${f4(c.y)},scale=${W}:${H},setsar=1${subs}[v]`;
+    return `${pre}crop=iw*${f4(c.w)}:ih*${f4(c.h)}:iw*${f4(c.x)}:ih*${f4(c.y)},${scale},setsar=1${sharpen}${subs}[v]`;
   }
   if (s.fit === "crop") {
-    return `${pre}crop='min(iw,ih*${W}/${H})':'min(ih,iw*${H}/${W})',scale=${W}:${H},setsar=1${subs}[v]`;
+    return `${pre}crop='min(iw,ih*${W}/${H})':'min(ih,iw*${H}/${W})',${scale},setsar=1${sharpen}${subs}[v]`;
   }
-  return `${pre}split[a][b];[a]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=20:2[bg];` +
-    `[b]scale=${W}:${H}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1${subs}[v]`;
+  return `${pre}split[a][b];[a]scale=${Math.round(W / 4)}:${Math.round(H / 4)}:force_original_aspect_ratio=increase,crop=${Math.round(W / 4)}:${Math.round(H / 4)},boxblur=10:2,scale=${W}:${H}[bg];` +
+    `[b]scale=${W}:${H}:force_original_aspect_ratio=decrease:flags=lanczos[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1${sharpen}${subs}[v]`;
 }
 
 // Limpeza de voz: corta graves e zumbido, remove chiado, comprime e iguala o volume.

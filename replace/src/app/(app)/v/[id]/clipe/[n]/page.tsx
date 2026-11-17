@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getProject, recallFile, rememberFile, saveProject, type Project } from "@/lib/store";
 import { renderEdited } from "@/lib/ffmpeg";
-import { autoCues, cropFromCenter, defaultSettings, DIMS, type Aspect, type AudioClean, type CaptionPos, type CaptionSize, type CaptionStyle, type Cue, type EditSettings } from "@/lib/edit";
+import { autoCues, cropFromCenter, defaultSettings, DIMS, dimsOf, type Aspect, type Quality, type AudioClean, type CaptionPos, type CaptionSize, type CaptionStyle, type Cue, type EditSettings } from "@/lib/edit";
 import { fmtClock } from "@/lib/time";
 import { slug } from "@/components/ui";
 import { IconDownload, IconPlay, IconScissors } from "@/components/icons";
@@ -135,6 +135,7 @@ export default function ClipEditor() {
                   ? { width: `${100 / crop.w}%`, height: `${100 / crop.h}%`, left: `${(-crop.x / crop.w) * 100}%`, top: `${(-crop.y / crop.h) * 100}%` }
                   : { inset: 0 }}>
                 <video ref={video} src={src} playsInline
+                  style={s.enhance ? { filter: "contrast(1.05) saturate(1.12)" } : undefined}
                   className={`absolute inset-0 h-full w-full ${crop ? "object-fill" : s.fit === "crop" ? "object-cover" : "object-contain"}`}
                   onTimeUpdate={(e) => {
                     const v = e.currentTarget; setT(v.currentTime);
@@ -227,6 +228,16 @@ export default function ClipEditor() {
           </section>
 
           <section className="card space-y-3">
+            <h2 className="font-bold">Qualidade da imagem</h2>
+            <Seg<Quality> value={s.quality ?? "720"} onChange={(v) => set({ quality: v })} options={[["720", "720p (rápido)"], ["1080", "1080p Full HD"], ["4k", "4K Ultra HD"]]} />
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={!!s.enhance} onChange={(e) => set({ enhance: e.target.checked })} />
+              <span><b>Melhorar imagem</b>: tira a granulação da webcam, dá nitidez e acerta contraste e cor.</span>
+            </label>
+            <p className="text-xs text-muted">A ampliação deixa a imagem lisa e nítida, mas não cria detalhes que a câmera não gravou. 4K gera um arquivo grande e demora mais (use no computador).</p>
+          </section>
+
+          <section className="card space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-bold">Legenda</h2>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={s.captions} onChange={(e) => set({ captions: e.target.checked })} />mostrar</label>
@@ -315,7 +326,7 @@ export default function ClipEditor() {
             </>
           ) : (
             <>
-              <span className="flex-1 text-xs text-muted">{err ? <span className="text-red-700">{err}</span> : `${s.aspect} · ${W}x${H} · gerado no seu aparelho`}</span>
+              <span className="flex-1 text-xs text-muted">{err ? <span className="text-red-700">{err}</span> : `${s.aspect} · ${dimsOf(s).join("x")}${s.quality === "4k" ? " · 4K pode levar vários minutos" : ""} · gerado no seu aparelho`}</span>
               <button className="btn-primary" onClick={exportar}><IconScissors className="h-4 w-4" />Exportar vídeo</button>
             </>
           )}

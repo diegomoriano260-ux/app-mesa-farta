@@ -105,7 +105,8 @@ export async function renderEdited(
       await ff.writeFile("/musica", new Uint8Array(await music.arrayBuffer()));
       inputs.push("-stream_loop", "-1", "-i", "/musica");
     }
-    const enc = ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "24", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-t", dur, "-y", "/clipe.mp4"];
+    const crf = settings.quality === "4k" ? "20" : settings.quality === "1080" ? "21" : "23";
+    const enc = ["-c:v", "libx264", "-preset", "ultrafast", "-crf", crf, "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-t", dur, "-y", "/clipe.mp4"];
     let code = await ff.exec([...inputs, "-filter_complex", `${videoFilter(settings, subs)};${audioFilter(settings, !!music)}`,
       "-map", "[v]", "-map", "[a]", "-c:a", "aac", "-b:a", "128k", ...enc]);
     if (code !== 0) {

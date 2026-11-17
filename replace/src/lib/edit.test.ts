@@ -9,13 +9,13 @@ describe("editor", () => {
     expect(cues.map((c) => c.text)).toEqual(["um dois tres quatro", "cinco seis sete oito"]);
   });
   it("estilo destaque gera karaokê palavra por palavra", () => {
-    const s = defaultSettings(12, 20);
+    const s = { ...defaultSettings(12, 20), quality: "720" as const };
     const ass = buildAss(s, [{ start: 0, end: 2, text: "olá mundo" }]);
     expect(ass).toContain("{\\k100}OLÁ {\\k100}MUNDO");
     expect(ass).toContain("PlayResY: 1280");
   });
   it("título, marca e formato 1:1", () => {
-    const s = { ...defaultSettings(0, 10), aspect: "1:1" as const, style: "caixa" as const, title: "Gancho {x}", handle: "@aline" };
+    const s = { ...defaultSettings(0, 10), quality: "720" as const, aspect: "1:1" as const, style: "caixa" as const, title: "Gancho {x}", handle: "@aline" };
     const ass = buildAss(s, []);
     expect(ass).toContain("PlayResY: 720");
     expect(ass).toContain("Titulo,,0,0,0,,Gancho x");
@@ -50,5 +50,22 @@ describe("enquadramento, tarjas e áudio", () => {
     expect(cleanChain("off")).toBe("");
     expect(cleanChain("forte")).toContain("afftdn");
     expect(audioFilter(defaultSettings(0, 1), false)).toContain("loudnorm");
+  });
+});
+
+import { dimsOf } from "./edit";
+describe("qualidade", () => {
+  it("dimensões por qualidade", () => {
+    expect(dimsOf({ aspect: "9:16", quality: "720" })).toEqual([720, 1280]);
+    expect(dimsOf({ aspect: "9:16", quality: "1080" })).toEqual([1080, 1920]);
+    expect(dimsOf({ aspect: "9:16", quality: "4k" })).toEqual([2160, 3840]);
+    expect(dimsOf({ aspect: "16:9", quality: "4k" })).toEqual([3840, 2160]);
+  });
+  it("melhorar imagem e escala lanczos", () => {
+    const f = videoFilter({ ...defaultSettings(0, 5), quality: "4k" }, true);
+    expect(f).toContain("scale=2160:3840:flags=lanczos");
+    expect(f).toContain("hqdn3d");
+    expect(f).toContain("unsharp");
+    expect(buildAss({ ...defaultSettings(0, 5), quality: "4k" }, [])).toContain("PlayResY: 3840");
   });
 });
