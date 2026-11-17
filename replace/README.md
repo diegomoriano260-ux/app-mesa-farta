@@ -18,6 +18,8 @@ Também baixa a transcrição em TXT e SRT. Os projetos ficam salvos no navegado
 | `SESSION_SECRET` | 32+ caracteres aleatórios |
 | `OPENAI_API_KEY` | chave da OpenAI (transcrição) |
 | `ANTHROPIC_API_KEY` | chave da Anthropic (resumo e clipes) |
+| `REPLICATE_API_TOKEN` | chave do Replicate (super-resolução Topaz, opcional) |
+| `BLOB_READ_WRITE_TOKEN` | criada ao ligar o Vercel Blob (envio do clipe para a IA) |
 
 ## Desenvolvimento
 

@@ -7,6 +7,7 @@ import { renderEdited } from "@/lib/ffmpeg";
 import { autoCues, cropFromCenter, defaultSettings, DIMS, dimsOf, type Aspect, type Quality, type AudioClean, type CaptionPos, type CaptionSize, type CaptionStyle, type Cue, type EditSettings } from "@/lib/edit";
 import { fmtClock } from "@/lib/time";
 import { slug } from "@/components/ui";
+import { UpscalePanel } from "@/components/upscale";
 import { IconDownload, IconPlay, IconScissors } from "@/components/icons";
 
 function Seg<T extends string>({ value, options, onChange }: { value: T; options: [T, string][]; onChange: (v: T) => void }) {
@@ -41,6 +42,7 @@ export default function ClipEditor() {
   const [state, setState] = useState<"idle" | "rendering" | "done" | "error">("idle");
   const [pct, setPct] = useState(0);
   const [out, setOut] = useState<string | null>(null);
+  const [outBlob, setOutBlob] = useState<Blob | null>(null);
   const [err, setErr] = useState("");
   const video = useRef<HTMLVideoElement>(null);
   const bg = useRef<HTMLVideoElement>(null);
@@ -110,7 +112,7 @@ export default function ClipEditor() {
     setState("rendering"); setPct(0); setErr("");
     try {
       const blob = await renderEdited(file, s, cues, music, setPct);
-      setOut(URL.createObjectURL(blob)); setState("done");
+      setOut(URL.createObjectURL(blob)); setOutBlob(blob); setState("done");
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)); setState("error"); }
   }
 
@@ -309,6 +311,10 @@ export default function ClipEditor() {
           </section>
         </div>
       </div>
+
+      {state === "done" && outBlob && (
+        <UpscalePanel clip={outBlob} seconds={s.end - s.start} name={slug(clip.titulo)} />
+      )}
 
       {/* Exportar */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 p-3 backdrop-blur">

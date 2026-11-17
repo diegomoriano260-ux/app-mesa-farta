@@ -23,7 +23,11 @@ Título fixo e marca (@),CapCut,CapCut,must,yes,
 Música de fundo com volume,CapCut,CapCut,must,yes,
 Volume do áudio original,CapCut,CapCut,must,yes,
 Linha do tempo com vários cortes e transições,CapCut,CapCut,should,no,fase 2
-Filtros e ajuste de cor,CapCut,CapCut,could,no,fase 2
+Filtros e ajuste de cor,CapCut,CapCut,could,partial,"Melhorar imagem" (granulação, nitidez, cor)
+Exportar 1080p e 4K,CapCut,CapCut,should,yes,ampliação lanczos
+Super-resolução por IA,CapCut,CapCut,could,yes,Topaz no Replicate (pago por segundo)
+Limpeza de voz (tirar chiado),CapCut,CapCut,should,yes,afftdn + loudnorm
+Enquadramento manual e tarjas pretas,CapCut,CapCut,should,yes,
 Remover fundo / chroma key,CapCut,CapCut,could,no,fase 3
 Remover silêncios e "éé",CapCut,CapCut,should,no,fase 2: dá para fazer pela transcrição
 Marca, logo e textos do WayinVideo / Tactiq / CapCut,marca,todos,skip,no,não se copia marca nem conteúdo
