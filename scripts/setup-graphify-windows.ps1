@@ -35,7 +35,7 @@ Passo '3/6 graphify install (skill no Claude Code)'
 graphify install
 
 # 4. GRAPHIFY_BACKEND=none nas configuracoes gerais do Claude
-Passo '4/6 GRAPHIFY_BACKEND=none em ~/.claude/settings.json'
+Passo '4/6 GRAPHIFY_BACKEND=none e idioma portugues em ~/.claude/settings.json'
 New-Item -ItemType Directory -Force -Path $claudeDir | Out-Null
 $settingsPath = Join-Path $claudeDir 'settings.json'
 if (Test-Path $settingsPath) {
@@ -52,6 +52,11 @@ if ($settings.env.PSObject.Properties['GRAPHIFY_BACKEND']) {
     $settings.env.GRAPHIFY_BACKEND = 'none'
 } else {
     $settings.env | Add-Member -NotePropertyName GRAPHIFY_BACKEND -NotePropertyValue 'none'
+}
+if ($settings.PSObject.Properties['language']) {
+    $settings.language = 'portuguese'
+} else {
+    $settings | Add-Member -NotePropertyName language -NotePropertyValue 'portuguese'
 }
 [IO.File]::WriteAllText($settingsPath, ($settings | ConvertTo-Json -Depth 50), $utf8)
 Write-Host "ok: $settingsPath (copia do original em settings.json.bak)"
