@@ -34,5 +34,8 @@
         ]
       }
     ]
+  },
+  "env": {
+    "GRAPHIFY_BACKEND": "none"
   }
 }

@@ -6,7 +6,7 @@
 ## Summary
 - 58 nodes · 103 edges · 10 communities (8 shown, 2 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
-- Token cost: 44,056 input · 130 output
+- Token cost: 0 input · 0 output
 
 ## Graph Freshness
 - Built from commit: `5be110e9`
