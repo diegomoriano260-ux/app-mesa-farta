@@ -1,0 +1,29 @@
+feature,area,original,priority,clone,notes
+Transcrição com tempo de cada frase,Tactiq,Tactiq,must,yes,OpenAI whisper-1 em partes de 10 min
+Busca na transcrição,Tactiq,Tactiq,must,yes,
+Baixar TXT / SRT / VTT,Tactiq,Tactiq,must,yes,
+Resumo + capítulos + pontos-chave + ações,Tactiq,Tactiq,must,yes,Claude
+Perguntar ao vídeo (chat),Tactiq,Tactiq,must,yes,Claude com cache da transcrição
+Modelos prontos (post / carrossel / reels / blog / e-mail / ata / tarefas / FAQ / títulos / frases),Tactiq,Tactiq,must,yes,10 modelos
+Transcrição ao vivo de reunião (Meet/Zoom/Teams),Tactiq,Tactiq,could,no,precisa de extensão de navegador; fase 3
+Clipes automáticos com nota de viralização,WayinVideo,WayinVideo,must,yes,Claude escolhe 3 a 10
+Legenda pronta para o post com hashtags,WayinVideo,WayinVideo,must,yes,
+Encontrar momentos por descrição,WayinVideo,WayinVideo,must,yes,
+Editar pela transcrição (clipe manual),WayinVideo,WayinVideo,must,yes,
+Reenquadrar para 9:16 / 1:1 / 4:5 / 16:9,WayinVideo,WayinVideo,must,yes,corte central ou fundo desfocado
+Tradutor de legendas,WayinVideo,WayinVideo,should,yes,8 idiomas
+Enquadramento que segue o rosto (auto reframe),WayinVideo,WayinVideo,should,no,precisa de detecção de rosto; fase 2
+Dublagem com voz (tradução falada),WayinVideo,WayinVideo,could,no,precisa de API de voz paga
+Gerar vídeo com IA (B-roll),WayinVideo,WayinVideo,could,no,precisa de API de vídeo paga
+Publicar direto no Instagram/TikTok,WayinVideo,WayinVideo,should,no,fase 2; dá para usar a conexão do Ativa Aline
+Cortar início e fim do clipe,CapCut,CapCut,must,yes,
+Legenda animada palavra por palavra,CapCut,CapCut,must,yes,4 estilos / 3 posições / 3 tamanhos
+Editar texto da legenda,CapCut,CapCut,must,yes,
+Título fixo e marca (@),CapCut,CapCut,must,yes,
+Música de fundo com volume,CapCut,CapCut,must,yes,
+Volume do áudio original,CapCut,CapCut,must,yes,
+Linha do tempo com vários cortes e transições,CapCut,CapCut,should,no,fase 2
+Filtros e ajuste de cor,CapCut,CapCut,could,no,fase 2
+Remover fundo / chroma key,CapCut,CapCut,could,no,fase 3
+Remover silêncios e "éé",CapCut,CapCut,should,no,fase 2: dá para fazer pela transcrição
+Marca, logo e textos do WayinVideo / Tactiq / CapCut,marca,todos,skip,no,não se copia marca nem conteúdo

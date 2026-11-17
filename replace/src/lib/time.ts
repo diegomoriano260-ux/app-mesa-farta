@@ -68,3 +68,7 @@ export function toAss(cues: Segment[], highlight = "&H0000E5FF"): string {
     "",
   ].join("\n");
 }
+
+export function toVtt(segments: Segment[]): string {
+  return "WEBVTT\n\n" + segments.map((s) => `${srtTime(s.start).replace(",", ".")} --> ${srtTime(s.end).replace(",", ".")}\n${s.text.trim()}\n`).join("\n");
+}

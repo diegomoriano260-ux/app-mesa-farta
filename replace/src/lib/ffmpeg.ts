@@ -1,6 +1,7 @@
 "use client";
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
-import { toAss, captionCues, type Segment } from "./time";
+import type { Segment } from "./time";
+import { audioFilter, autoCues, buildAss, defaultSettings, videoFilter, type Cue, type EditSettings } from "./edit";
 
 declare global {
   interface Window { FFmpegWASM?: { FFmpeg: new () => FFmpeg } }
@@ -76,39 +77,58 @@ export async function extractAudioChunks(file: File, onProgress: (p: number) => 
 }
 
 let fontLoaded = false;
-// Corta o trecho, deixa vertical 9:16 (720x1280) e queima a legenda estilo Reels.
-export async function renderClip(
-  file: File, segments: Segment[], start: number, end: number,
-  opts: { captions: boolean }, onProgress: (p: number) => void,
+async function ensureFont(ff: FFmpeg) {
+  if (fontLoaded) return;
+  await ff.createDir("/fonts").catch(() => {});
+  const font = new Uint8Array(await (await fetch("/fonts/Inter-ExtraBold.otf")).arrayBuffer());
+  await ff.writeFile("/fonts/Inter-ExtraBold.otf", font);
+  fontLoaded = true;
+}
+
+// Gera o clipe editado: formato, enquadramento, legenda animada, título, @, música.
+export async function renderEdited(
+  file: File, settings: EditSettings, cues: Cue[], music: File | null, onProgress: (p: number) => void,
 ): Promise<Blob> {
   const ff = await getFFmpeg();
   const progress = ({ progress }: { progress: number }) => onProgress(Math.max(0, Math.min(1, progress)));
   ff.on("progress", progress);
   const { path, dir } = await mountInput(ff, file);
+  const dur = (settings.end - settings.start).toFixed(2);
+  const subs = settings.captions || !!settings.title.trim() || !!settings.handle.trim();
   try {
-    const vf = ["crop='min(iw,ih*9/16)':ih", "scale=720:1280:force_original_aspect_ratio=decrease",
-      "pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black", "setsar=1"];
-    if (opts.captions) {
-      if (!fontLoaded) {
-        await ff.createDir("/fonts").catch(() => {});
-        const font = new Uint8Array(await (await fetch("/fonts/Inter-ExtraBold.otf")).arrayBuffer());
-        await ff.writeFile("/fonts/Inter-ExtraBold.otf", font);
-        fontLoaded = true;
-      }
-      await ff.writeFile("/legenda.ass", new TextEncoder().encode(toAss(captionCues(segments, start, end))));
-      vf.push("subtitles=/legenda.ass:fontsdir=/fonts");
+    if (subs) {
+      await ensureFont(ff);
+      await ff.writeFile("/legenda.ass", new TextEncoder().encode(buildAss(settings, cues)));
     }
-    const code = await ff.exec(["-ss", start.toFixed(2), "-i", path, "-t", (end - start).toFixed(2), "-vf", vf.join(","),
-      "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26", "-pix_fmt", "yuv420p",
-      "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-y", "/clipe.mp4"]);
+    const inputs = ["-ss", settings.start.toFixed(2), "-t", dur, "-i", path];
+    if (music) {
+      await ff.writeFile("/musica", new Uint8Array(await music.arrayBuffer()));
+      inputs.push("-stream_loop", "-1", "-i", "/musica");
+    }
+    const enc = ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "24", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-t", dur, "-y", "/clipe.mp4"];
+    let code = await ff.exec([...inputs, "-filter_complex", `${videoFilter(settings, subs)};${audioFilter(settings, !!music)}`,
+      "-map", "[v]", "-map", "[a]", "-c:a", "aac", "-b:a", "128k", ...enc]);
+    if (code !== 0) {
+      // vídeo sem som: gera só a imagem (com a música, se houver)
+      const audio = music ? ["-filter_complex", `${videoFilter(settings, subs)};[1:a]volume=${settings.musicVolume.toFixed(2)}[a]`, "-map", "[v]", "-map", "[a]", "-c:a", "aac"]
+        : ["-filter_complex", videoFilter(settings, subs), "-map", "[v]", "-an"];
+      code = await ff.exec([...inputs, ...audio, ...enc]);
+    }
     if (code !== 0) throw new Error("Não consegui gerar o clipe.");
     const data = (await ff.readFile("/clipe.mp4")) as Uint8Array;
     await ff.deleteFile("/clipe.mp4");
+    if (music) await ff.deleteFile("/musica").catch(() => {});
     return new Blob([data.slice()], { type: "video/mp4" });
   } finally {
     ff.off("progress", progress);
     await cleanup(ff, dir);
   }
+}
+
+// Atalho com as configurações padrão (vertical, legenda destaque).
+export function renderClip(file: File, segments: Segment[], start: number, end: number, opts: { captions: boolean }, onProgress: (p: number) => void) {
+  const s = { ...defaultSettings(start, end), captions: opts.captions };
+  return renderEdited(file, s, autoCues(segments, start, end), null, onProgress);
 }
 
 export function videoDuration(file: File): Promise<number> {

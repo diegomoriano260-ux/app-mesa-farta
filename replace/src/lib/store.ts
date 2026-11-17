@@ -2,6 +2,7 @@
 // Projetos ficam salvos no próprio navegador (IndexedDB): sem banco, sem custo, privado.
 import type { Analysis } from "./analysis";
 import type { Segment } from "./time";
+import type { EditSettings } from "./edit";
 
 export type Project = {
   id: string;
@@ -13,6 +14,10 @@ export type Project = {
   language: string | null;
   segments: Segment[];
   analysis: Analysis | null;
+  chat?: { role: "user" | "assistant"; content: string }[];
+  outputs?: Record<string, string>;            // textos gerados pelos modelos prontos
+  translations?: Record<string, Segment[]>;    // legendas traduzidas por idioma
+  edits?: Record<number, EditSettings>;        // edição salva de cada clipe
 };
 
 const DB = "replace";
