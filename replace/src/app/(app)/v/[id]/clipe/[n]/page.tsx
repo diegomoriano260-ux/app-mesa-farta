@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getProject, recallFile, rememberFile, saveProject, type Project } from "@/lib/store";
 import { renderEdited } from "@/lib/ffmpeg";
-import { autoCues, defaultSettings, DIMS, type Aspect, type CaptionPos, type CaptionSize, type CaptionStyle, type Cue, type EditSettings } from "@/lib/edit";
+import { autoCues, cropFromCenter, defaultSettings, DIMS, type Aspect, type AudioClean, type CaptionPos, type CaptionSize, type CaptionStyle, type Cue, type EditSettings } from "@/lib/edit";
 import { fmtClock } from "@/lib/time";
 import { slug } from "@/components/ui";
 import { IconDownload, IconPlay, IconScissors } from "@/components/icons";
@@ -35,6 +35,9 @@ export default function ClipEditor() {
   const [lang, setLang] = useState<string>("original");
   const [music, setMusic] = useState<File | null>(null);
   const [t, setT] = useState(0);
+  const [src0, setSrc0] = useState<[number, number] | null>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const thumb = useRef<HTMLVideoElement>(null);
   const [state, setState] = useState<"idle" | "rendering" | "done" | "error">("idle");
   const [pct, setPct] = useState(0);
   const [out, setOut] = useState<string | null>(null);
@@ -49,7 +52,13 @@ export default function ClipEditor() {
       if (!x) return;
       setP(x);
       const clip = x.analysis?.clipes[idx];
-      if (clip) setS(x.edits?.[idx] ?? { ...defaultSettings(clip.inicio, clip.fim), title: clip.gancho ? "" : "" });
+      if (!clip) return;
+      const saved = x.edits?.[idx];
+      if (saved) { setS(saved); return; }
+      // reaproveita o visual de outro clipe já editado deste vídeo (enquadramento, tarjas, áudio, legenda)
+      const other = Object.values(x.edits ?? {})[0];
+      const base = defaultSettings(clip.inicio, clip.fim);
+      setS(other ? { ...other, start: clip.inicio, end: clip.fim, cues: null, title: "" } : base);
     });
     setFile(recallFile(id));
   }, [id, idx]);
@@ -71,6 +80,24 @@ export default function ClipEditor() {
   const rel = t - s.start;
   const cur = cues.find((c) => rel >= c.start && rel < c.end);
   const fontPx = { P: 15, M: 19, G: 24 }[s.size];
+  const crop = s.crop ?? null;
+  const zoomOf = () => s!.frame?.zoom ?? 2;
+  function setCrop(cx: number, cy: number, zoom: number, aspect: Aspect = s!.aspect) {
+    if (!src0) return;
+    cx = Math.max(0, Math.min(1, cx)); cy = Math.max(0, Math.min(1, cy));
+    set({ crop: cropFromCenter(aspect, src0[0], src0[1], cx, cy, zoom), frame: { cx, cy, zoom }, aspect });
+  }
+  function dragCrop(e: React.PointerEvent<HTMLDivElement>) {
+    if (!crop || !frameRef.current || (e.type === "pointermove" && e.buttons !== 1)) return;
+    const r = frameRef.current.getBoundingClientRect();
+    setCrop((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, zoomOf());
+  }
+  const masks = (
+    <>
+      {(s.maskTop ?? 0) > 0 && <div className="absolute inset-x-0 top-0 bg-black" style={{ height: `${(s.maskTop ?? 0) * 100}%` }} />}
+      {(s.maskBottom ?? 0) > 0 && <div className="absolute inset-x-0 bottom-0 bg-black" style={{ height: `${(s.maskBottom ?? 0) * 100}%` }} />}
+    </>
+  );
 
   function play() {
     const v = video.current; if (!v || !s) return;
@@ -103,15 +130,20 @@ export default function ClipEditor() {
           <div className="relative mx-auto overflow-hidden rounded-2xl bg-black shadow-lg" style={{ aspectRatio: `${W}/${H}`, maxHeight: "62vh", width: s.aspect === "16:9" ? "100%" : undefined, height: s.aspect === "16:9" ? undefined : "62vh" }}>
             {src ? (
               <>
-                {s.fit === "blur" && <video ref={bg} src={src} muted playsInline className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl" onLoadedMetadata={(e) => { e.currentTarget.currentTime = video.current?.currentTime ?? s.start; }} />}
+                {s.fit === "blur" && !crop && <video ref={bg} src={src} muted playsInline className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl" onLoadedMetadata={(e) => { e.currentTarget.currentTime = video.current?.currentTime ?? s.start; }} />}
+                <div className="absolute" style={crop
+                  ? { width: `${100 / crop.w}%`, height: `${100 / crop.h}%`, left: `${(-crop.x / crop.w) * 100}%`, top: `${(-crop.y / crop.h) * 100}%` }
+                  : { inset: 0 }}>
                 <video ref={video} src={src} playsInline
-                  className={`absolute inset-0 h-full w-full ${s.fit === "crop" ? "object-cover" : "object-contain"}`}
+                  className={`absolute inset-0 h-full w-full ${crop ? "object-fill" : s.fit === "crop" ? "object-cover" : "object-contain"}`}
                   onTimeUpdate={(e) => {
                     const v = e.currentTarget; setT(v.currentTime);
                     if (bg.current && Math.abs(bg.current.currentTime - v.currentTime) > 0.3) bg.current.currentTime = v.currentTime;
                     if (v.currentTime >= s.end) { v.pause(); bg.current?.pause(); }
                   }}
-                  onLoadedMetadata={(e) => { e.currentTarget.currentTime = s.start; }} />
+                  onLoadedMetadata={(e) => { e.currentTarget.currentTime = s.start; setSrc0([e.currentTarget.videoWidth, e.currentTarget.videoHeight]); }} />
+                {crop && masks}
+                </div>
               </>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-sm text-white/80">
@@ -155,8 +187,43 @@ export default function ClipEditor() {
 
           <section className="card space-y-3">
             <h2 className="font-bold">Formato</h2>
-            <Seg<Aspect> value={s.aspect} onChange={(v) => set({ aspect: v })} options={[["9:16", "9:16 Reels"], ["4:5", "4:5 Feed"], ["1:1", "1:1 Quadrado"], ["16:9", "16:9 YouTube"]]} />
-            <Seg value={s.fit} onChange={(v) => set({ fit: v })} options={[["crop", "Preencher (cortar)"], ["blur", "Inteiro com fundo desfocado"]]} />
+            <Seg<Aspect> value={s.aspect} onChange={(v) => (crop ? setCrop(s.frame?.cx ?? 0.5, s.frame?.cy ?? 0.5, zoomOf(), v) : set({ aspect: v }))} options={[["9:16", "9:16 Reels"], ["4:5", "4:5 Feed"], ["1:1", "1:1 Quadrado"], ["16:9", "16:9 YouTube"]]} />
+            <div className="flex flex-wrap gap-1.5">
+              {([["auto", "Centro automático"], ["blur", "Inteiro + fundo desfocado"], ["manual", "Escolher a área (arrastar)"]] as const).map(([k, l]) => {
+                const on = k === "manual" ? !!crop : !crop && (k === "blur" ? s.fit === "blur" : s.fit === "crop");
+                return (
+                  <button key={k} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${on ? "bg-brand-600 text-white" : "bg-canvas text-muted ring-1 ring-line"}`}
+                    onClick={() => k === "manual" ? (src0 ? setCrop(s.frame?.cx ?? 0.5, s.frame?.cy ?? 0.5, s.frame?.zoom ?? 2) : fileInput.current?.click()) : set({ crop: null, frame: s.frame, fit: k === "blur" ? "blur" : "crop" })}>{l}</button>
+                );
+              })}
+            </div>
+            {crop && src && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted">Arraste o quadro até a pessoa que deve aparecer. O que fica fora do quadro não entra no vídeo.</p>
+                <div ref={frameRef} className="relative w-full touch-none select-none overflow-hidden rounded-xl bg-black"
+                  style={{ aspectRatio: src0 ? `${src0[0]}/${src0[1]}` : "16/9" }}
+                  onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); dragCrop(e); }} onPointerMove={dragCrop}>
+                  <video ref={thumb} src={src} muted playsInline className="absolute inset-0 h-full w-full object-fill"
+                    onLoadedMetadata={(e) => { e.currentTarget.currentTime = s.start + 1; }} />
+                  {masks}
+                  <div className="pointer-events-none absolute rounded border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+                    style={{ left: `${crop.x * 100}%`, top: `${crop.y * 100}%`, width: `${crop.w * 100}%`, height: `${crop.h * 100}%` }} />
+                </div>
+                <label className="block text-sm">Zoom: {zoomOf().toFixed(1)}x
+                  <input type="range" min={1} max={5} step={0.1} className="mt-1 w-full accent-brand-600" value={zoomOf()}
+                    onChange={(e) => setCrop(s.frame?.cx ?? crop.x + crop.w / 2, s.frame?.cy ?? crop.y + crop.h / 2, Number(e.target.value))} />
+                </label>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <label className="text-sm">Tarja preta em cima: {Math.round((s.maskTop ?? 0) * 100)}%
+                <input type="range" min={0} max={0.4} step={0.01} className="mt-1 w-full accent-brand-600" value={s.maskTop ?? 0} onChange={(e) => set({ maskTop: Number(e.target.value) })} />
+              </label>
+              <label className="text-sm">Tarja preta embaixo: {Math.round((s.maskBottom ?? 0) * 100)}%
+                <input type="range" min={0} max={0.4} step={0.01} className="mt-1 w-full accent-brand-600" value={s.maskBottom ?? 0} onChange={(e) => set({ maskBottom: Number(e.target.value) })} />
+              </label>
+            </div>
+            <p className="text-xs text-muted">As tarjas cobrem de preto as bordas do vídeo original: abas do navegador, barra do Meet, barra do Windows.</p>
           </section>
 
           <section className="card space-y-3">
@@ -207,6 +274,11 @@ export default function ClipEditor() {
 
           <section className="card space-y-3">
             <h2 className="font-bold">Áudio</h2>
+            <div className="space-y-1.5">
+              <p className="text-sm">Melhorar a voz (tira chiado e iguala o volume)</p>
+              <Seg<AudioClean> value={s.audioClean ?? "off"} onChange={(v) => set({ audioClean: v })} options={[["off", "Desligado"], ["suave", "Suave"], ["forte", "Forte (muito chiado)"]]} />
+              <p className="text-xs text-muted">O efeito aparece no vídeo exportado.</p>
+            </div>
             <label className="block text-sm">Volume do vídeo: {Math.round(s.originalVolume * 100)}%
               <input type="range" min={0} max={1.5} step={0.05} className="mt-1 w-full accent-brand-600" value={s.originalVolume} onChange={(e) => set({ originalVolume: Number(e.target.value) })} />
             </label>

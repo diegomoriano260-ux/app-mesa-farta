@@ -26,6 +26,29 @@ describe("editor", () => {
     expect(videoFilter(s, true)).toContain("subtitles=/legenda.ass");
     expect(videoFilter({ ...s, fit: "blur" }, false)).toContain("boxblur");
     expect(audioFilter(s, true)).toContain("amix=inputs=2");
-    expect(audioFilter({ ...s, originalVolume: 0 }, false)).toBe("[0:a]volume=0.00[a]");
+    expect(audioFilter({ ...s, originalVolume: 0, audioClean: "off" }, false)).toBe("[0:a]volume=0.00[a]");
+  });
+});
+
+import { cropFromCenter, maskFilter, cleanChain } from "./edit";
+describe("enquadramento, tarjas e áudio", () => {
+  it("quadro 9:16 manual dentro do vídeo 16:9", () => {
+    const c = cropFromCenter("9:16", 1920, 1080, 0.85, 0.8, 2);
+    expect(c.h).toBeCloseTo(0.5);
+    expect(c.w * 1920 / (c.h * 1080)).toBeCloseTo(9 / 16);
+    expect(c.x + c.w).toBeLessThanOrEqual(1);
+    expect(c.y + c.h).toBeLessThanOrEqual(1);
+  });
+  it("filtro usa crop manual e tarjas", () => {
+    const s = { ...defaultSettings(0, 10), crop: { x: 0.5, y: 0.5, w: 0.2, h: 0.4 }, maskTop: 0.1, maskBottom: 0.15 };
+    const f = videoFilter(s, false);
+    expect(f).toContain("drawbox=x=0:y=0:w=iw:h=ih*0.1000");
+    expect(f).toContain("crop=iw*0.2000:ih*0.4000:iw*0.5000:ih*0.5000");
+    expect(maskFilter({ ...s, maskTop: 0, maskBottom: 0 })).toBe("");
+  });
+  it("limpeza de áudio", () => {
+    expect(cleanChain("off")).toBe("");
+    expect(cleanChain("forte")).toContain("afftdn");
+    expect(audioFilter(defaultSettings(0, 1), false)).toContain("loudnorm");
   });
 });

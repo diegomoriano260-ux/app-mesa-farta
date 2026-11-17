@@ -6,6 +6,9 @@ export type Fit = "crop" | "blur";
 export type CaptionStyle = "destaque" | "classico" | "caixa" | "neon";
 export type CaptionPos = "baixo" | "meio" | "topo";
 export type CaptionSize = "P" | "M" | "G";
+export type AudioClean = "off" | "suave" | "forte";
+// Área do vídeo original que aparece no clipe (frações de 0 a 1 da largura/altura).
+export type CropBox = { x: number; y: number; w: number; h: number };
 
 export type Cue = { start: number; end: number; text: string };
 
@@ -23,6 +26,11 @@ export type EditSettings = {
   handle: string;          // @ no rodapé ("" = sem)
   originalVolume: number;  // 0..1
   musicVolume: number;     // 0..1
+  crop?: CropBox | null;   // enquadramento manual; null = centro automático
+  frame?: { cx: number; cy: number; zoom: number } | null; // ponto escolhido pela pessoa (para o quadro manual)
+  maskTop?: number;        // tarja preta em cima do vídeo original (0..0.5)
+  maskBottom?: number;     // tarja preta embaixo do vídeo original (0..0.5)
+  audioClean?: AudioClean; // limpeza do áudio
 };
 
 export const DIMS: Record<Aspect, [number, number]> = {
@@ -33,6 +41,7 @@ export function defaultSettings(start: number, end: number): EditSettings {
   return {
     start, end, aspect: "9:16", fit: "crop", captions: true, style: "destaque", pos: "baixo", size: "M",
     cues: null, title: "", handle: "", originalVolume: 1, musicVolume: 0.25,
+    crop: null, maskTop: 0, maskBottom: 0, audioClean: "suave",
   };
 }
 
@@ -108,19 +117,55 @@ export function buildAss(s: EditSettings, cues: Cue[]): string {
   ].join("\n");
 }
 
+const f4 = (n: number) => Math.max(0, Math.min(1, n)).toFixed(4);
+
+// Tarjas pretas no vídeo original (escondem abas do navegador, barra do Meet, barra do Windows).
+export function maskFilter(s: EditSettings): string {
+  const parts: string[] = [];
+  if ((s.maskTop ?? 0) > 0) parts.push(`drawbox=x=0:y=0:w=iw:h=ih*${f4(s.maskTop!)}:color=black:t=fill`);
+  if ((s.maskBottom ?? 0) > 0) parts.push(`drawbox=x=0:y=ih*${f4(1 - s.maskBottom!)}:w=iw:h=ih*${f4(s.maskBottom!)}:color=black:t=fill`);
+  return parts.length ? parts.join(",") + "," : "";
+}
+
 // Filtro de vídeo do ffmpeg para o formato e o enquadramento escolhidos.
 export function videoFilter(s: EditSettings, withSubs: boolean): string {
   const [W, H] = DIMS[s.aspect];
   const subs = withSubs ? ",subtitles=/legenda.ass:fontsdir=/fonts" : "";
-  if (s.fit === "crop") {
-    return `[0:v]crop='min(iw,ih*${W}/${H})':'min(ih,iw*${H}/${W})',scale=${W}:${H},setsar=1${subs}[v]`;
+  const pre = `[0:v]${maskFilter(s)}`;
+  if (s.crop) {
+    const c = s.crop;
+    return `${pre}crop=iw*${f4(c.w)}:ih*${f4(c.h)}:iw*${f4(c.x)}:ih*${f4(c.y)},scale=${W}:${H},setsar=1${subs}[v]`;
   }
-  return `[0:v]split[a][b];[a]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=20:2[bg];` +
+  if (s.fit === "crop") {
+    return `${pre}crop='min(iw,ih*${W}/${H})':'min(ih,iw*${H}/${W})',scale=${W}:${H},setsar=1${subs}[v]`;
+  }
+  return `${pre}split[a][b];[a]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},boxblur=20:2[bg];` +
     `[b]scale=${W}:${H}:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1${subs}[v]`;
+}
+
+// Limpeza de voz: corta graves e zumbido, remove chiado, comprime e iguala o volume.
+export function cleanChain(mode: AudioClean | undefined): string {
+  if (mode === "suave") return "highpass=f=80,afftdn=nf=-25,loudnorm=I=-16:TP=-1.5:LRA=11,";
+  if (mode === "forte") return "highpass=f=100,lowpass=f=9000,afftdn=nf=-35:tn=1,acompressor=threshold=-22dB:ratio=3:attack=5:release=120,loudnorm=I=-16:TP=-1.5:LRA=9,";
+  return "";
 }
 
 export function audioFilter(s: EditSettings, hasMusic: boolean): string {
   const ov = s.originalVolume.toFixed(2);
-  if (!hasMusic) return `[0:a]volume=${ov}[a]`;
-  return `[0:a]volume=${ov}[a0];[1:a]volume=${s.musicVolume.toFixed(2)}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[a]`;
+  const clean = cleanChain(s.audioClean);
+  if (!hasMusic) return `[0:a]${clean}volume=${ov}[a]`;
+  return `[0:a]${clean}volume=${ov}[a0];[1:a]volume=${s.musicVolume.toFixed(2)}[a1];[a0][a1]amix=inputs=2:duration=first:dropout_transition=0[a]`;
+}
+
+// Quadro de enquadramento manual: centro (cx, cy) e zoom (1 = maior quadro possível).
+export function cropFromCenter(aspect: Aspect, srcW: number, srcH: number, cx: number, cy: number, zoom: number): CropBox {
+  const [W, H] = DIMS[aspect];
+  const target = W / H;
+  let wPx = srcW, hPx = srcW / target;
+  if (hPx > srcH) { hPx = srcH; wPx = srcH * target; }
+  wPx /= zoom; hPx /= zoom;
+  const w = wPx / srcW, h = hPx / srcH;
+  const x = Math.max(0, Math.min(1 - w, cx - w / 2));
+  const y = Math.max(0, Math.min(1 - h, cy - h / 2));
+  return { x, y, w, h };
 }
