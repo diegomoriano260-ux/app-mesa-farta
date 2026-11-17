@@ -1,0 +1,63 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1794938026.2750094,
+    "seen": 1794938031.9679873,
+    "ast_hash": "8eafe95f2f857d090df6c04324b234d1",
+    "semantic_hash": "8eafe95f2f857d090df6c04324b234d1",
+    "ast_empty": true
+  },
+  "api/_shared.js": {
+    "mtime": 1794937573.4175744,
+    "seen": 1794938031.9679945,
+    "ast_hash": "e0d69a4995c4046584717b0d7346e081",
+    "semantic_hash": "e0d69a4995c4046584717b0d7346e081"
+  },
+  "api/highlights.js": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.9680574,
+    "ast_hash": "58279f5a605f8cfce80da130bd661597",
+    "semantic_hash": "58279f5a605f8cfce80da130bd661597"
+  },
+  "api/summary.js": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.9680786,
+    "ast_hash": "92260c92a6ecf8e273da094bf93fc72f",
+    "semantic_hash": "92260c92a6ecf8e273da094bf93fc72f"
+  },
+  "app.js": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.9680963,
+    "ast_hash": "8490b4e6e9c272ef899640b19690049d",
+    "semantic_hash": "8490b4e6e9c272ef899640b19690049d"
+  },
+  "cues.js": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.968113,
+    "ast_hash": "651295b49ee63c1126fdb6c5f8104ae5",
+    "semantic_hash": "651295b49ee63c1126fdb6c5f8104ae5"
+  },
+  "cues.test.js": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.9681275,
+    "ast_hash": "90ff0a8bc2dc14d001dd07b19b7ae91e",
+    "semantic_hash": "90ff0a8bc2dc14d001dd07b19b7ae91e"
+  },
+  "package.json": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.968151,
+    "ast_hash": "68b5ed66a4b8a55cacbea9f0ba1734cc",
+    "semantic_hash": "68b5ed66a4b8a55cacbea9f0ba1734cc"
+  },
+  "report.js": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.9681656,
+    "ast_hash": "78cae047c24585dc1ec72fd85c90473a",
+    "semantic_hash": "78cae047c24585dc1ec72fd85c90473a"
+  },
+  "report.test.js": {
+    "mtime": 1794937573.4182105,
+    "seen": 1794938031.9681811,
+    "ast_hash": "6611ccca5850a6a794f3ec91dbbdfb91",
+    "semantic_hash": "6611ccca5850a6a794f3ec91dbbdfb91"
+  }
+}

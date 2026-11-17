@@ -1,0 +1,220 @@
+{
+  "communities": {
+    "0": [
+      "package",
+      "package_author",
+      "package_description",
+      "package_homepage",
+      "package_keywords",
+      "package_license",
+      "package_main",
+      "package_name",
+      "package_private",
+      "package_type",
+      "package_version"
+    ],
+    "1": [
+      "app_makerenderer",
+      "app_makerenderer_draw",
+      "app_makerenderer_wrap",
+      "cues",
+      "cues_cueat",
+      "cues_makecues",
+      "cues_test",
+      "ref_node_assert",
+      "ref_node_test"
+    ],
+    "2": [
+      "app",
+      "app_addcard",
+      "app_api",
+      "app_decodeaudio",
+      "app_run",
+      "app_status",
+      "https",
+      "ref_https"
+    ],
+    "3": [
+      "app_el",
+      "app_showsummary",
+      "report",
+      "report_fmt",
+      "report_summarymarkdown",
+      "report_test",
+      "report_transcripttext"
+    ],
+    "4": [
+      "api_shared",
+      "api_shared_client",
+      "api_shared_sendapierror",
+      "api_summary",
+      "api_summary_handler",
+      "api_summary_summary"
+    ],
+    "5": [
+      "api_highlights",
+      "api_highlights_clampclips",
+      "api_highlights_clips",
+      "api_highlights_handler",
+      "api_shared_readtranscript"
+    ],
+    "6": [
+      "package_dependencies",
+      "package_dependencies_anthropic_ai_sdk",
+      "package_dependencies_zod",
+      "ref_anthropic_ai_sdk",
+      "ref_zod"
+    ],
+    "7": [
+      "package_repository",
+      "package_repository_type",
+      "package_repository_url"
+    ],
+    "8": [
+      "package_bugs",
+      "package_bugs_url"
+    ],
+    "9": [
+      "package_scripts",
+      "package_scripts_test"
+    ]
+  },
+  "cohesion": {
+    "0": 0.18181818181818182,
+    "1": 0.3333333333333333,
+    "2": 0.39285714285714285,
+    "3": 0.6190476190476191,
+    "4": 0.5333333333333333,
+    "5": 0.6,
+    "6": 0.4,
+    "7": 0.6666666666666666,
+    "8": 1.0,
+    "9": 1.0
+  },
+  "gods": [
+    {
+      "id": "app_run",
+      "label": "run()",
+      "degree": 10
+    },
+    {
+      "id": "report_fmt",
+      "label": "fmt()",
+      "degree": 8
+    },
+    {
+      "id": "app_showsummary",
+      "label": "showSummary()",
+      "degree": 6
+    },
+    {
+      "id": "app_makerenderer",
+      "label": "makeRenderer()",
+      "degree": 5
+    },
+    {
+      "id": "cues_cueat",
+      "label": "cueAt()",
+      "degree": 5
+    },
+    {
+      "id": "report_summarymarkdown",
+      "label": "summaryMarkdown()",
+      "degree": 5
+    },
+    {
+      "id": "report_transcripttext",
+      "label": "transcriptText()",
+      "degree": 5
+    },
+    {
+      "id": "api_shared_sendapierror",
+      "label": "sendApiError()",
+      "degree": 5
+    },
+    {
+      "id": "api_shared_readtranscript",
+      "label": "readTranscript()",
+      "degree": 5
+    },
+    {
+      "id": "ref_anthropic_ai_sdk",
+      "label": "@anthropic-ai/sdk",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "run()",
+      "target": "makeCues()",
+      "source_files": [
+        "app.js",
+        "cues.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "addCard()",
+      "target": "fmt()",
+      "source_files": [
+        "app.js",
+        "report.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "run()",
+      "target": "fmt()",
+      "source_files": [
+        "app.js",
+        "report.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "handler()",
+      "target": "sendApiError()",
+      "source_files": [
+        "api/highlights.js",
+        "api/_shared.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    },
+    {
+      "source": "handler()",
+      "target": "readTranscript()",
+      "source_files": [
+        "api/summary.js",
+        "api/_shared.js"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "bridges separate communities"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `@anthropic-ai/sdk` connect `SDK and Validation Dependencies` to `Package Metadata`, `Summary API Handler`, `Highlight Clip Extraction`?",
+      "why": "High betweenness centrality (0.088) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `zod` connect `SDK and Validation Dependencies` to `Package Metadata`, `Summary API Handler`, `Highlight Clip Extraction`?",
+      "why": "High betweenness centrality (0.069) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `repository` connect `Repository Info` to `Package Metadata`?",
+      "why": "High betweenness centrality (0.039) - this node is a cross-community bridge."
+    }
+  ]
+}
