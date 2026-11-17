@@ -14,7 +14,10 @@ Também baixa a transcrição em TXT e SRT. Os projetos ficam salvos no navegado
 
 | nome | o quê |
 | --- | --- |
-| `ADMIN_PASSWORD` | senha para entrar |
+| `DATABASE_URL` | Postgres (pode ser o mesmo Supabase do Ativa Aline; tabelas `rp_`) |
+| `APP_URL` | endereço do site, ex.: https://replace-cyan.vercel.app |
+| `ADMIN_PASSWORD` | senha do administrador (entre com o e-mail `admin`) |
+| `MP_ACCESS_TOKEN` | Access Token de produção do Mercado Pago (vendas de créditos) |
 | `SESSION_SECRET` | 32+ caracteres aleatórios |
 | `OPENAI_API_KEY` | chave da OpenAI (transcrição) |
 | `ANTHROPIC_API_KEY` | chave da Anthropic (resumo e clipes) |

@@ -2,7 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hasSession } from "@/lib/session";
+import { payOrFail } from "@/lib/guard";
+import { PRICES } from "@/lib/pricing";
 import { AnalysisSchema, sanitizeClips, transcriptForModel } from "@/lib/analysis";
 
 export const runtime = "nodejs";
@@ -23,10 +24,11 @@ Faça duas coisas:
 Seja fiel ao que foi dito; não invente informação.`;
 
 export async function POST(req: Request) {
-  if (!(await hasSession())) return NextResponse.json({ error: "Faça login de novo." }, { status: 401 });
   const parsed = Body.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Transcrição inválida." }, { status: 400 });
   const { title, duration, segments } = parsed.data;
+  const pay = await payOrFail(PRICES.analise, `Resumo e clipes: ${title.slice(0, 60)}`);
+  if ("error" in pay) return pay.error;
 
   const client = new Anthropic();
   try {
@@ -43,12 +45,14 @@ export async function POST(req: Request) {
       }],
     });
     if (msg.stop_reason === "refusal") {
+      await pay.refund();
       return NextResponse.json({ error: "A IA recusou analisar este vídeo." }, { status: 422 });
     }
     const out = msg.parsed_output;
-    if (!out) return NextResponse.json({ error: "A IA não devolveu a análise. Tente de novo." }, { status: 502 });
+    if (!out) { await pay.refund(); return NextResponse.json({ error: "A IA não devolveu a análise. Tente de novo." }, { status: 502 }); }
     return NextResponse.json({ ...out, clipes: sanitizeClips(out.clipes, duration) });
   } catch (e) {
+    await pay.refund();
     if (e instanceof Anthropic.AuthenticationError) {
       return NextResponse.json({ error: "Chave da Anthropic inválida (ANTHROPIC_API_KEY)." }, { status: 500 });
     }

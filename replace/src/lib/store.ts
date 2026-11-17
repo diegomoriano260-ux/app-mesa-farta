@@ -20,12 +20,12 @@ export type Project = {
   edits?: Record<number, EditSettings>;        // edição salva de cada clipe
 };
 
-const DB = "replace";
+const dbName = () => `replace-${(typeof window !== "undefined" && window.__RP_UID) || "anon"}`;
 const STORE = "projects";
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB, 1);
+    const req = indexedDB.open(dbName(), 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: "id" });
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);

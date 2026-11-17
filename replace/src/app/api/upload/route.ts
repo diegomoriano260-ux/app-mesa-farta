@@ -1,6 +1,6 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
-import { hasSession } from "@/lib/session";
+import { currentUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const out = await handleUpload({
       body, request: req,
       onBeforeGenerateToken: async () => {
-        if (!(await hasSession())) throw new Error("Faça login de novo.");
+        if (!(await currentUser())) throw new Error("Faça login de novo.");
         return { allowedContentTypes: ["video/mp4"], maximumSizeInBytes: 1024 * 1024 * 1024, addRandomSuffix: true };
       },
       onUploadCompleted: async () => {},

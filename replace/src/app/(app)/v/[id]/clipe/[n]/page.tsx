@@ -313,7 +313,7 @@ export default function ClipEditor() {
       </div>
 
       {state === "done" && outBlob && (
-        <UpscalePanel clip={outBlob} seconds={s.end - s.start} name={slug(clip.titulo)} />
+        <UpscalePanel clip={outBlob} seconds={s.end - s.start} name={slug(clip.titulo)} aspect={`${W}/${H}`} />
       )}
 
       {/* Exportar */}
