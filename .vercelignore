@@ -1,0 +1,7 @@
+.claude/
+graphify-out/
+skills-lock.json
+CLAUDE.md
+.mcp.json
+scripts/
+*.test.js
