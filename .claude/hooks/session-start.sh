@@ -30,6 +30,11 @@ if [ ! -f "$HOME/.claude/skills/graphify/SKILL.md" ]; then
   graphify install >/dev/null
 fi
 
+# 3b. Baixa em segundo plano os servidores MCP do .mcp.json (markitdown e playwright),
+# para eles conectarem rápido. Não segura o início da sessão e falhas são ignoradas.
+( uvx markitdown-mcp --help || true ) >/dev/null 2>&1 &
+( npx -y @playwright/mcp@latest --help || true ) >/dev/null 2>&1 &
+
 # 4. Dependências do projeto, só quando package.json ou package-lock.json mudarem
 hashes=node_modules/.session-start.sha256
 if ! sha256sum --check --status "$hashes" 2>/dev/null; then

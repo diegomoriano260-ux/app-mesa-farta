@@ -44,7 +44,8 @@
     ]
   },
   "env": {
-    "GRAPHIFY_BACKEND": "none"
+    "GRAPHIFY_BACKEND": "none",
+    "MCP_TIMEOUT": "120000"
   },
   "language": "portuguese"
 }
