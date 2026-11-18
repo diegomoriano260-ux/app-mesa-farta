@@ -7,6 +7,19 @@
         "markitdown-mcp"
       ],
       "env": {}
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--headless",
+        "--no-sandbox",
+        "--executable-path",
+        "/opt/pw-browsers/chromium"
+      ],
+      "env": {}
     }
   }
 }
