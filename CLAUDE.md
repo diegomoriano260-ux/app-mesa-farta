@@ -14,3 +14,9 @@ Rules:
 - Nunca rodar `graphify cluster-only`, `graphify label` ou extração semântica com LLM. Se precisar refazer os grupos, use `GRAPHIFY_BACKEND=none graphify cluster-only .`.
 - Para entender o código, consultar o grafo antes de ler arquivos: `graphify query "<pergunta>"`, `graphify explain "<nó>"`, `graphify path "<A>" "<B>"`. Abrir arquivo só nas linhas que o grafo já apontou.
 - Referência (`graphify benchmark`): ler o projeto todo ≈ 3.900 tokens; uma pergunta pelo grafo ≈ 1.200 tokens (~3x menos).
+
+## Leitura de arquivos e links (markitdown)
+- Sempre que o usuário enviar ou citar um arquivo ou link para ler, resumir ou extrair dados (PDF, Word, Excel, PowerPoint, HTML, CSV, JSON, XML, imagem, áudio, ZIP, EPUB ou página web), converta para Markdown com o MarkItDown automaticamente, sem esperar o usuário pedir "markitdown".
+- Ordem de preferência: ferramenta MCP `convert_to_markdown` (servidor `markitdown` em `.mcp.json`); se não estiver carregada, o comando `markitdown <arquivo>` (ou `uvx markitdown <arquivo>`); se não estiver instalado, `pip install 'markitdown[all]'` antes.
+- Arquivo de texto simples ou código-fonte (.md, .txt, .js etc.) se lê direto, sem conversão.
+- Saída grande: salvar o .md no scratchpad e ler só as partes necessárias.
