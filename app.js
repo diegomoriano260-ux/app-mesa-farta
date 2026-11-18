@@ -56,10 +56,13 @@ $('form').addEventListener('submit', async e => {
   $('go').disabled = true;
   $('clips').replaceChildren();
   $('summary').replaceChildren();
+  $('status').className = 'busy';
   try {
     await run($('file').files[0]);
+    $('status').className = '';
   } catch (err) {
     console.error(err);
+    $('status').className = 'error';
     status('Erro: ' + err.message);
   } finally {
     $('go').disabled = false;

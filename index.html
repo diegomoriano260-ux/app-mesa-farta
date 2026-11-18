@@ -2,14 +2,21 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f5f2">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141413">
+  <meta name="color-scheme" content="light dark">
   <title>Recorte</title>
   <style>
-    :root { --bg: #f6f5f2; --fg: #1d1c1a; --muted: #6b6862; --card: #fff; --line: #e2dfd8; --accent: #e8452c; }
+    :root { --bg: #f6f5f2; --fg: #1d1c1a; --muted: #6b6862; --card: #fff; --line: #e2dfd8; --accent: #e8452c; --ease-out: cubic-bezier(0.23, 1, 0.32, 1); }
     @media (prefers-color-scheme: dark) { :root { --bg: #141413; --fg: #efede8; --muted: #a3a09a; --card: #1f1e1c; --line: #34322e; } }
     * { box-sizing: border-box; }
+    html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
     body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
-    main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+    main { max-width: 860px; margin: 0 auto; padding: 32px max(16px, env(safe-area-inset-right, 0px)) calc(64px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+    button, a, select, input[type=file] { touch-action: manipulation; }
+    button { user-select: none; -webkit-user-select: none; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     h1 { margin: 0 0 4px; font-size: 28px; }
     .sub { color: var(--muted); margin: 0 0 24px; }
     form { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 16px; }
@@ -17,11 +24,29 @@
     label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
     input, select, button { font: inherit; }
     input[type=file], select, input[type=password] { padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg); }
-    button { padding: 12px 20px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
+    input[type=file], select { font-size: 16px; }
+    form { grid-template-columns: minmax(0, 1fr); }
+    form > label > select, form > label > input { width: 100%; min-width: 0; }
+    button { padding: 12px 20px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; transition: transform 160ms var(--ease-out), opacity 200ms ease, filter 150ms ease; }
+    button:active:not(:disabled) { transform: scale(0.97); }
     button:disabled { opacity: .5; cursor: wait; }
-    #status { margin: 20px 0; color: var(--muted); white-space: pre-line; min-height: 1.5em; }
+    @media (hover: hover) and (pointer: fine) {
+      button:hover:not(:disabled) { filter: brightness(1.08); }
+      .clip a:hover, #summary .downloads a:hover { text-decoration-thickness: 2px; }
+    }
+    #status { margin: 20px 0; color: var(--muted); white-space: pre-line; min-height: 1.5em; display: flex; gap: 10px; align-items: flex-start; }
+    #status.busy::before { content: ""; flex: none; width: 14px; height: 14px; margin-top: 5px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 600ms linear infinite; }
+    #status.error { color: var(--accent); }
+    @keyframes spin { to { transform: rotate(360deg); } }
     #clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
     .clip { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+    .clip, #summary:not(:empty) { transition: opacity 300ms var(--ease-out), transform 300ms var(--ease-out); }
+    @starting-style { .clip, #summary:not(:empty) { opacity: 0; transform: translateY(8px); } }
+    @media (prefers-reduced-motion: reduce) {
+      @starting-style { .clip, #summary:not(:empty) { transform: none; } }
+      #status.busy::before { animation-duration: 1.5s; }
+      button:active:not(:disabled) { transform: none; }
+    }
     .clip video { width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: 8px; }
     .clip h3 { margin: 0; font-size: 16px; }
     .clip p { margin: 0; font-size: 13px; color: var(--muted); }
